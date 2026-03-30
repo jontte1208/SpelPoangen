@@ -48,7 +48,7 @@ model VerificationToken {
 }
 
 // ------------------------------------
-// Core application models
+// Enums
 // ------------------------------------
 
 enum Tier {
@@ -57,21 +57,48 @@ enum Tier {
   PREMIUM
 }
 
+enum ClickStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum QuestType {
+  DAILY
+  ONETIME
+  CLAN
+}
+
+enum RewardType {
+  CURRENCY
+  ITEM
+  COSMETIC
+}
+
+// ------------------------------------
+// Core models
+// ------------------------------------
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  discordId     String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Gamification
-  xp    Int  @default(0)
-  level Int  @default(1)
-  tier  Tier @default(FREE)
+  xp      Int      @default(0)
+  level   Int      @default(1)
+  coins   Int      @default(0) // earned in-platform currency
+  gold    Int      @default(0) // premium currency
+  streak  Int      @default(0)
+  lastLogin DateTime?
 
-  // Affiliate
+  // Tier & affiliate
+  tier          Tier    @default(FREE)
   affiliateCode String? @unique
   referredBy    String? // affiliateCode of the referrer
 
@@ -89,14 +116,72 @@ model User {
   purchases       Purchase[]
 }
 
+model Product {
+  id            String  @id @default(cuid())
+  name          String
+  description   String  @db.Text
+  priceSek      Float
+  affiliateLink String
+  imageUrl      String?
+  xpReward      Int     @default(0)
+  coinReward    Int     @default(0)
+  category      String
+  isPremiumOnly Boolean  @default(false)
+  isFlashDeal   Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  affiliateClicks AffiliateClick[]
+  purchases       Purchase[]
+}
+
+model AffiliateClick {
+  id        String      @id @default(cuid())
+  userId    String?
+  productId String
+  subId     String      @unique // unique tracking string per click
+  status    ClickStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Purchase {
+  id              String   @id @default(cuid())
+  userId          String
+  productId       String
+  amount          Float
+  currency        String   @default("sek")
+  stripePaymentId String?  @unique
+  xpAwarded       Int      @default(0)
+  coinsAwarded    Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ShopItem {
+  id         String   @id @default(cuid())
+  name       String
+  coinCost   Int      @default(0)
+  goldCost   Int      @default(0)
+  stock      Int      @default(-1) // -1 = unlimited
+  isPhysical Boolean  @default(false)
+  imageUrl   String?
+  createdAt  DateTime @default(now())
+}
+
 model Quest {
-  id          String @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String
-  xpReward    Int
-  iconUrl     String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  rewardXP    Int       @default(0)
+  rewardCoins Int       @default(0)
+  type        QuestType @default(ONETIME)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
 
   userQuests UserQuest[]
 }
@@ -113,44 +198,25 @@ model UserQuest {
   @@unique([userId, questId])
 }
 
-model Product {
-  id           String  @id @default(cuid())
-  title        String
-  description  String  @db.Text
-  price        Float
-  imageUrl     String?
-  affiliateUrl String
-  category     String
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+model BattlePass {
+  id         String          @id @default(cuid())
+  seasonName String
+  isActive   Boolean         @default(false)
+  createdAt  DateTime        @default(now())
 
-  purchases Purchase[]
-  clicks    AffiliateClick[]
+  tiers BattlePassTier[]
 }
 
-model AffiliateClick {
-  id            String   @id @default(cuid())
-  userId        String?
-  productId     String
-  affiliateCode String?
-  ipHash        String? // hashed for privacy
-  clickedAt     DateTime @default(now())
-  converted     Boolean  @default(false)
+model BattlePassTier {
+  id           String     @id @default(cuid())
+  battlePassId String
+  level        Int        // 1–50
+  requiredXP   Int
+  rewardName   String
+  rewardType   RewardType
+  isFree       Boolean    @default(true)
 
-  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-}
+  battlePass BattlePass @relation(fields: [battlePassId], references: [id], onDelete: Cascade)
 
-model Purchase {
-  id              String   @id @default(cuid())
-  userId          String
-  productId       String
-  amount          Float
-  currency        String   @default("sek")
-  stripePaymentId String?  @unique
-  xpAwarded       Int      @default(0)
-  createdAt       DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([battlePassId, level])
 }
