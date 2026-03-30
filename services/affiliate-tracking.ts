@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { awardXP } from "@/services/xp-logic";
-import { createHash } from "crypto";
+import { randomUUID } from "crypto";
 import type { AffiliateClickPayload } from "@/types/products";
 
 const XP_PER_CLICK = 5;
@@ -9,17 +9,13 @@ const XP_PER_CONVERSION = 100;
 export async function recordAffiliateClick(
   payload: AffiliateClickPayload,
   userId: string | null,
-  rawIp: string
+  _rawIp: string
 ): Promise<{ xpAwarded: number }> {
-  const ipHash = createHash("sha256")
-    .update(rawIp + process.env.IP_HASH_SECRET)
-    .digest("hex");
-
   const existing = await prisma.affiliateClick.findFirst({
     where: {
       productId: payload.productId,
-      ipHash,
-      clickedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      userId: userId ?? undefined,
+      createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },
   });
 
@@ -27,8 +23,8 @@ export async function recordAffiliateClick(
     data: {
       userId: userId ?? undefined,
       productId: payload.productId,
-      affiliateCode: payload.affiliateCode ?? undefined,
-      ipHash,
+      subId: randomUUID(),
+      status: "PENDING",
     },
   });
 
@@ -48,8 +44,8 @@ export async function recordConversion(
   void stripePaymentId;
 
   await prisma.affiliateClick.updateMany({
-    where: { productId, userId, converted: false },
-    data: { converted: true },
+    where: { productId, userId, status: "PENDING" },
+    data: { status: "VERIFIED" },
   });
 
   await awardXP(userId, XP_PER_CONVERSION);

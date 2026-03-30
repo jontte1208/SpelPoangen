@@ -1,4 +1,4 @@
-import { Tier } from "@prisma/client";
+export type Tier = "FREE" | "GOLD" | "PREMIUM";
 
 export interface UserProfile {
   id: string;

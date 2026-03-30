@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { Coins, Gem } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Tier } from "@prisma/client";
 import { cn, xpForLevel } from "@/lib/utils";
 import { TIER_COLORS, TIER_LABELS } from "@/types/user";
+import type { Tier } from "@/types/user";
 
 const navItems = [
   { href: "/dashboard", label: "Hem" },

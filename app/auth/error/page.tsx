@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
 const ERRORS: Record<string, string> = {
   Configuration: "Server configuration error. Please contact support.",
@@ -10,7 +11,7 @@ const ERRORS: Record<string, string> = {
   Default: "An unexpected error occurred. Please try again.",
 };
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error") ?? "Default";
   const message = ERRORS[error] ?? ERRORS.Default;
@@ -28,5 +29,13 @@ export default function AuthErrorPage() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen" />}>
+      <AuthErrorContent />
+    </Suspense>
   );
 }

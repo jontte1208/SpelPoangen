@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
-import { Tier } from "@prisma/client";
+import type { Tier } from "@/types/user";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,8 +20,8 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, profile }) {
-      if (profile) {
-        token.discordId = profile.id;
+      if (profile && "id" in profile) {
+        token.discordId = String(profile.id);
       }
 
       if (!token.sub) {

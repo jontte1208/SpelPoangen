@@ -1,13 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Tier } from "@prisma/client";
 import LootMarketSection from "@/components/market/LootMarketSection";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import type { Tier } from "@/types/user";
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -18,7 +18,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,

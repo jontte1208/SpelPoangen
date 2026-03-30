@@ -1,4 +1,4 @@
-import { Tier } from "@prisma/client";
+import type { Tier } from "@/types/user";
 import "next-auth";
 import "next-auth/jwt";
 
