@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
-    "user:make-admin": "tsx scripts/set-admin-by-discord-id.ts"
+    "user:make-admin": "tsx scripts/set-admin-by-discord-id.ts",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
