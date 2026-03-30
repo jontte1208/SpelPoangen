@@ -57,6 +57,11 @@ enum Tier {
   PREMIUM
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 enum ClickStatus {
   PENDING
   VERIFIED
@@ -73,6 +78,13 @@ enum RewardType {
   CURRENCY
   ITEM
   COSMETIC
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
 }
 
 // ------------------------------------
@@ -99,6 +111,8 @@ model User {
 
   // Tier & affiliate
   tier          Tier    @default(FREE)
+  role          Role    @default(USER)
+  isBanned      Boolean @default(false)
   affiliateCode String? @unique
   referredBy    String? // affiliateCode of the referrer
 
@@ -114,6 +128,7 @@ model User {
   quests          UserQuest[]
   affiliateClicks AffiliateClick[]
   purchases       Purchase[]
+  orders          Order[]
 }
 
 model Product {
@@ -171,6 +186,23 @@ model ShopItem {
   isPhysical Boolean  @default(false)
   imageUrl   String?
   createdAt  DateTime @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  shopItemId String
+  quantity   Int         @default(1)
+  coinsSpent Int
+  status     OrderStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  fulfilledAt DateTime?
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
 }
 
 model Quest {

@@ -11,7 +11,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        display: ["var(--font-orbitron)", "monospace"],
+        display: ["var(--font-rajdhani)", "var(--font-inter)", "sans-serif"],
       },
       colors: {
         background: "hsl(var(--background))",
@@ -33,6 +33,9 @@ const config: Config = {
         neon: "0 0 8px #00f5ff, 0 0 20px #00f5ff33",
         "neon-purple": "0 0 8px #b347ff, 0 0 20px #b347ff33",
         "neon-pink": "0 0 8px #ff2d78, 0 0 20px #ff2d7833",
+        "neon-soft": "0 0 20px rgba(0, 245, 255, 0.14)",
+        "gold-soft": "0 0 20px rgba(250, 204, 21, 0.15)",
+        "orange-soft": "0 0 20px rgba(249, 115, 22, 0.16)",
         card: "0 4px 24px rgba(0,0,0,0.4)",
       },
       animation: {

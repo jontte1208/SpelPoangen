@@ -8,8 +8,8 @@ export function Card({ className, glow = false, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl bg-white/5 border border-border p-6 shadow-card",
-        glow && "shadow-neon border-neon-cyan/30",
+        "glass-panel rounded-[1.5rem] p-6 shadow-card transition-all duration-300",
+        glow && "border-neon-cyan/25 shadow-neon-soft",
         className
       )}
       {...props}

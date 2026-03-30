@@ -1,0 +1,73 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { handleAffiliateClick } from "@/app/(platform)/shop/actions";
+
+type InteractiveProduct = {
+  name: string;
+  price: string;
+  image: string;
+  affiliateLink: string;
+};
+
+type InteractiveProductsGridProps = {
+  products: InteractiveProduct[];
+};
+
+export default function InteractiveProductsGrid({ products }: InteractiveProductsGridProps) {
+  const [isPending, startTransition] = useTransition();
+  const [activeBuy, setActiveBuy] = useState<string | null>(null);
+
+  function handleBuyNow(productName: string, affiliateLink: string) {
+    setActiveBuy(productName);
+
+    startTransition(async () => {
+      const result = await handleAffiliateClick(affiliateLink);
+
+      if (result.url) {
+        window.open(result.url, "_blank", "noopener,noreferrer");
+      }
+
+      setActiveBuy(null);
+    });
+  }
+
+  return (
+    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      {products.map((product) => (
+        <article
+          key={product.name}
+          className="group overflow-hidden rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft"
+        >
+          <div className="relative overflow-hidden">
+            <span className="absolute right-3 top-3 z-10 rounded-full border border-neon-cyan/35 bg-slate-950/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-neon-cyan">
+              +500 XP
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={product.image}
+              alt={product.name}
+              className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+
+          <div className="space-y-4 p-5">
+            <h3 className="font-display text-lg font-semibold text-white">{product.name}</h3>
+
+            <div className="flex items-center justify-between">
+              <span className="font-display text-xl font-semibold text-neon-cyan">{product.price}</span>
+              <button
+                type="button"
+                onClick={() => handleBuyNow(product.name, product.affiliateLink)}
+                disabled={isPending && activeBuy === product.name}
+                className="rounded-xl border border-neon-cyan/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPending && activeBuy === product.name ? "LADDAR..." : "KÖP NU"}
+              </button>
+            </div>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}

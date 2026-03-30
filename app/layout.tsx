@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Orbitron } from "next/font/google";
+import { Inter, Rajdhani } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
 
@@ -9,19 +9,19 @@ const inter = Inter({
   display: "swap",
 });
 
-const orbitron = Orbitron({
+const rajdhani = Rajdhani({
   subsets: ["latin"],
-  variable: "--font-orbitron",
+  variable: "--font-rajdhani",
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Spelpoängen — Gamified Gamer Hub",
+    default: "Spelpoängen - Grind. Shop. Level Up.",
     template: "%s | Spelpoängen",
   },
-  description:
-    "Earn XP, unlock rewards, and discover the best gaming gear — all in one gamified affiliate hub.",
+  description: "Spelpoängen - Grind. Shop. Level Up.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
   ),
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="sv" className="dark" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${orbitron.variable} font-sans bg-background text-foreground antialiased min-h-screen`}
+        className={`${inter.variable} ${rajdhani.variable} font-sans bg-background text-foreground antialiased min-h-screen`}
       >
         <Providers>{children}</Providers>
       </body>

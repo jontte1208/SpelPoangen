@@ -21,19 +21,26 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: linear-gradient(
-        rgba(0, 245, 255, 0.025) 1px,
-        transparent 1px
-      ),
+    background-image:
+      radial-gradient(circle at top, rgba(0, 245, 255, 0.12), transparent 26%),
+      radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.15), transparent 24%),
+      linear-gradient(rgba(0, 245, 255, 0.025) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 245, 255, 0.025) 1px, transparent 1px);
-    background-size: 60px 60px;
+    background-size: auto, auto, 60px 60px, 60px 60px;
+    background-attachment: fixed;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--font-orbitron), monospace;
-    letter-spacing: 0.05em;
+    font-family: var(--font-rajdhani), var(--font-inter), sans-serif;
+    letter-spacing: 0.03em;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-slate-900/50 backdrop-blur-md border border-white/10;
   }
 }

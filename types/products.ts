@@ -1,10 +1,12 @@
 export interface Product {
   id: string;
-  title: string;
+  name: string;
   description: string;
-  price: number;
+  priceSek: number;
   imageUrl: string | null;
-  affiliateUrl: string;
+  affiliateLink: string;
+  xpReward: number;
+  coinReward: number;
   category: ProductCategory;
   isActive: boolean;
   createdAt: Date;
@@ -21,8 +23,6 @@ export type ProductCategory =
 
 export interface ProductCardProps {
   product: Product;
-  affiliateCode?: string;
-  showXPBadge?: boolean;
 }
 
 export interface AffiliateClickPayload {
