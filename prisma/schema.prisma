@@ -1,0 +1,254 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------
+// NextAuth required tables
+// ------------------------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ------------------------------------
+// Enums
+// ------------------------------------
+
+enum Tier {
+  FREE
+  GOLD
+  PREMIUM
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ClickStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum QuestType {
+  DAILY
+  ONETIME
+  CLAN
+}
+
+enum RewardType {
+  CURRENCY
+  ITEM
+  COSMETIC
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
+}
+
+// ------------------------------------
+// Core models
+// ------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  discordId     String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Gamification
+  xp      Int      @default(0)
+  level   Int      @default(1)
+  coins   Int      @default(0) // earned in-platform currency
+  gold    Int      @default(0) // premium currency
+  streak  Int      @default(0)
+  lastLogin DateTime?
+
+  // Tier & affiliate
+  tier          Tier    @default(FREE)
+  role          Role    @default(USER)
+  isBanned      Boolean @default(false)
+  affiliateCode String? @unique
+  referredBy    String? // affiliateCode of the referrer
+
+  // Stripe
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
+  // Relations
+  accounts        Account[]
+  sessions        Session[]
+  quests          UserQuest[]
+  affiliateClicks AffiliateClick[]
+  purchases       Purchase[]
+  orders          Order[]
+}
+
+model Product {
+  id            String  @id @default(cuid())
+  name          String
+  description   String  @db.Text
+  priceSek      Float
+  affiliateLink String
+  imageUrl      String?
+  xpReward      Int     @default(0)
+  coinReward    Int     @default(0)
+  category      String
+  isPremiumOnly Boolean  @default(false)
+  isFlashDeal   Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  affiliateClicks AffiliateClick[]
+  purchases       Purchase[]
+}
+
+model AffiliateClick {
+  id        String      @id @default(cuid())
+  userId    String?
+  productId String
+  subId     String      @unique // unique tracking string per click
+  status    ClickStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Purchase {
+  id              String   @id @default(cuid())
+  userId          String
+  productId       String
+  amount          Float
+  currency        String   @default("sek")
+  stripePaymentId String?  @unique
+  xpAwarded       Int      @default(0)
+  coinsAwarded    Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ShopItem {
+  id         String   @id @default(cuid())
+  name       String
+  coinCost   Int      @default(0)
+  goldCost   Int      @default(0)
+  stock      Int      @default(-1) // -1 = unlimited
+  isPhysical Boolean  @default(false)
+  imageUrl   String?
+  createdAt  DateTime @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  shopItemId String
+  quantity   Int         @default(1)
+  coinsSpent Int
+  status     OrderStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  fulfilledAt DateTime?
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+}
+
+model Quest {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  rewardXP    Int       @default(0)
+  rewardCoins Int       @default(0)
+  type        QuestType @default(ONETIME)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  userQuests UserQuest[]
+}
+
+model UserQuest {
+  id          String   @id @default(cuid())
+  userId      String
+  questId     String
+  completedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId])
+}
+
+model BattlePass {
+  id         String          @id @default(cuid())
+  seasonName String
+  isActive   Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+
+  tiers BattlePassTier[]
+}
+
+model BattlePassTier {
+  id           String     @id @default(cuid())
+  battlePassId String
+  level        Int        // 1–50
+  requiredXP   Int
+  rewardName   String
+  rewardType   RewardType
+  isFree       Boolean    @default(true)
+
+  battlePass BattlePass @relation(fields: [battlePassId], references: [id], onDelete: Cascade)
+
+  @@unique([battlePassId, level])
+}
