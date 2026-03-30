@@ -2,14 +2,18 @@ import ProductCard from "@/components/shop/ProductCard";
 import { prisma } from "@/lib/prisma";
 import type { Product } from "@/types/products";
 
+type DbProduct = Omit<Product, "category"> & {
+  category: string;
+};
+
 export default async function ProductGrid() {
   let products: Product[] = [];
 
   try {
-    const dbProducts = await prisma.product.findMany({
+    const dbProducts = (await prisma.product.findMany({
       where: { isActive: true },
       orderBy: { createdAt: "desc" },
-    });
+    })) as DbProduct[];
 
     products = dbProducts.map((product) => ({
       ...product,
