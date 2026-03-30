@@ -1,0 +1,158 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------
+// NextAuth required tables
+// ------------------------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ------------------------------------
+// Core application models
+// ------------------------------------
+
+enum Tier {
+  FREE
+  GOLD
+  PREMIUM
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Gamification
+  xp    Int  @default(0)
+  level Int  @default(1)
+  tier  Tier @default(FREE)
+
+  // Affiliate
+  affiliateCode String? @unique
+  referredBy    String? // affiliateCode of the referrer
+
+  // Stripe
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
+  // Relations
+  accounts        Account[]
+  sessions        Session[]
+  quests          UserQuest[]
+  affiliateClicks AffiliateClick[]
+  purchases       Purchase[]
+}
+
+model Quest {
+  id          String @id @default(cuid())
+  title       String
+  description String
+  xpReward    Int
+  iconUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userQuests UserQuest[]
+}
+
+model UserQuest {
+  id          String   @id @default(cuid())
+  userId      String
+  questId     String
+  completedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId])
+}
+
+model Product {
+  id           String  @id @default(cuid())
+  title        String
+  description  String  @db.Text
+  price        Float
+  imageUrl     String?
+  affiliateUrl String
+  category     String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  purchases Purchase[]
+  clicks    AffiliateClick[]
+}
+
+model AffiliateClick {
+  id            String   @id @default(cuid())
+  userId        String?
+  productId     String
+  affiliateCode String?
+  ipHash        String? // hashed for privacy
+  clickedAt     DateTime @default(now())
+  converted     Boolean  @default(false)
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Purchase {
+  id              String   @id @default(cuid())
+  userId          String
+  productId       String
+  amount          Float
+  currency        String   @default("sek")
+  stripePaymentId String?  @unique
+  xpAwarded       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
