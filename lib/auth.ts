@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
-      authorization: { params: { scope: "identify email guilds guilds.join" } },
+      authorization: { params: { scope: "identify email guilds" } },
     }),
   ],
   session: {
@@ -106,7 +106,6 @@ export const authOptions: NextAuthOptions = {
           token.affiliateCode = dbUser.affiliateCode ?? token.affiliateCode;
 
           // Auto-promote owner Discord account to ADMIN
-          // Check both the JWT token discordId and the stored DB discordId
           const isOwner =
             token.discordId === OWNER_DISCORD_ID ||
             dbUser.discordId === OWNER_DISCORD_ID;
