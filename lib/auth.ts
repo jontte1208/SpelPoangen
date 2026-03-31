@@ -82,6 +82,7 @@ export const authOptions: NextAuthOptions = {
           },
           select: {
             id: true,
+            discordId: true,
             xp: true,
             coins: true,
             gold: true,
@@ -105,7 +106,11 @@ export const authOptions: NextAuthOptions = {
           token.affiliateCode = dbUser.affiliateCode ?? token.affiliateCode;
 
           // Auto-promote owner Discord account to ADMIN
-          if (token.discordId === OWNER_DISCORD_ID && dbUser.role !== "ADMIN") {
+          // Check both the JWT token discordId and the stored DB discordId
+          const isOwner =
+            token.discordId === OWNER_DISCORD_ID ||
+            dbUser.discordId === OWNER_DISCORD_ID;
+          if (isOwner && dbUser.role !== "ADMIN") {
             await prisma.user.update({
               where: { id: dbUser.id },
               data: { role: "ADMIN" },
