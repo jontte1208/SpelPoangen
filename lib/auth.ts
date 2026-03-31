@@ -1,8 +1,22 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
 import type { Tier } from "@/types/user";
+
+function toErrorMeta(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+
+  return {
+    message: String(error),
+  };
+}
 
 function getAdminDiscordIds() {
   const values = [
@@ -65,7 +79,7 @@ export const authOptions: NextAuthOptions = {
           provider: account.provider,
           discordId,
           isAdminDiscordId,
-          error,
+          error: toErrorMeta(error),
         });
       }
     },
@@ -153,7 +167,7 @@ export const authOptions: NextAuthOptions = {
           tokenSub: token.sub,
           tokenEmail: token.email,
           tokenDiscordId: token.discordId,
-          error,
+          error: toErrorMeta(error),
         });
         // Fall back to token defaults when the database is unavailable.
       }
