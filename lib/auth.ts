@@ -5,24 +5,6 @@ import type { Tier } from "@/types/user";
 
 const OWNER_DISCORD_ID = "243147609135513612";
 
-async function addUserToDiscordServer(
-  discordUserId: string,
-  accessToken: string
-) {
-  const guildId = process.env.DISCORD_GUILD_ID;
-  const botToken = process.env.DISCORD_BOT_TOKEN;
-  if (!guildId || !botToken) return;
-
-  await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bot ${botToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ access_token: accessToken }),
-  });
-}
-
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
@@ -39,16 +21,6 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/error",
   },
   callbacks: {
-    async signIn({ account }) {
-      if (account?.provider === "discord" && account.access_token && account.providerAccountId) {
-        try {
-          await addUserToDiscordServer(account.providerAccountId, account.access_token);
-        } catch {
-          // Don't block sign-in if guild join fails
-        }
-      }
-      return true;
-    },
     async jwt({ token, profile }) {
       if (profile && "id" in profile) {
         token.discordId = String(profile.id);
