@@ -34,19 +34,27 @@ type PlatformShellProps = {
     streak: number;
     level: number;
     tier: Tier;
+    role: "USER" | "ADMIN";
   };
   children: React.ReactNode;
 };
 
 function getInitials(name?: string | null) {
   if (!name) return "SP";
-
   return name
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function OwnerBadge() {
+  return (
+    <span className="inline-flex items-center rounded-md border border-neon-cyan/40 bg-neon-cyan/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.4)]">
+      Owner
+    </span>
+  );
 }
 
 export default function PlatformShell({ user, children }: PlatformShellProps) {
@@ -56,6 +64,7 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
   const levelRange = Math.max(nextThreshold - currentThreshold, 1);
   const currentLevelXP = Math.max(user.xp - currentThreshold, 0);
   const progress = Math.min(Math.max((currentLevelXP / levelRange) * 100, 0), 100);
+  const isAdmin = user.role === "ADMIN";
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -84,7 +93,6 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
             <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
               {navItems.filter((item) => !item.premium).map((item) => {
                 const isActive = pathname === item.href;
-
                 return (
                   <Link
                     key={item.href}
@@ -122,7 +130,10 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
                     </div>
                   )}
                   <div className="hidden leading-tight md:block">
-                    <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
+                      {isAdmin && <OwnerBadge />}
+                    </div>
                     <p className={cn("text-[10px] uppercase tracking-[0.18em]", TIER_COLORS[user.tier])}>
                       {TIER_LABELS[user.tier]}
                     </p>
@@ -146,7 +157,10 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
                       className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-xl border border-white/10 bg-slate-900/95 shadow-xl backdrop-blur-md"
                     >
                       <div className="border-b border-white/5 px-3 py-2.5">
-                        <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
+                          {isAdmin && <OwnerBadge />}
+                        </div>
                         <p className={cn("text-[10px] uppercase tracking-[0.18em]", TIER_COLORS[user.tier])}>
                           {TIER_LABELS[user.tier]}
                         </p>
@@ -183,7 +197,6 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
           <nav className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3 lg:hidden">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
-
               return (
                 <Link
                   key={item.href}
