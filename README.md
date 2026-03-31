@@ -25,6 +25,10 @@ Note:
 
 - Keep DATABASE_URL and DIRECT_URL pointing at the same Supabase project.
 - If both ADMIN_DISCORD_ID and ADMIN_DISCORD_IDS are set, both are accepted.
+- Use the exact URL formats from Supabase dashboard:
+	- DATABASE_URL (pooler): `postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
+	- DIRECT_URL (direct): `postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres`
+- If password includes special characters, URL-encode it before saving in Vercel.
 
 ### 2. Configure Discord OAuth redirect URLs
 
