@@ -6,8 +6,29 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function normalizeConnectionString(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  const withoutMatchingQuotes =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+      ? trimmed.slice(1, -1)
+      : trimmed;
+
+  return withoutMatchingQuotes;
+}
+
 function createPrismaClient() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const connectionString = normalizeConnectionString(process.env.DATABASE_URL);
+
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is missing. Set it in your environment variables.");
+  }
+
+  const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({
     adapter,
