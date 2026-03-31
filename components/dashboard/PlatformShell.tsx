@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Gem, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -178,6 +178,16 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
                             {item.label}
                           </Link>
                         ))}
+                        {isAdmin && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-neon-cyan transition-colors hover:bg-neon-cyan/10"
+                          >
+                            <ShieldCheck size={15} className="text-neon-cyan" />
+                            Admin Panel
+                          </Link>
+                        )}
 
                         <button
                           onClick={() => signOut({ callbackUrl: "/" })}
