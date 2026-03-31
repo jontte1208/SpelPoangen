@@ -2,6 +2,8 @@ import type { Tier } from "@/types/user";
 import "next-auth";
 import "next-auth/jwt";
 
+type Role = "USER" | "ADMIN";
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -15,7 +17,7 @@ declare module "next-auth" {
       streak: number;
       level: number;
       tier: Tier;
-      role: "USER" | "ADMIN";
+      role: Role;
       affiliateCode?: string;
     };
   }
@@ -30,7 +32,7 @@ declare module "next-auth/jwt" {
     streak?: number;
     level?: number;
     tier?: Tier;
-    role?: "USER" | "ADMIN";
+    role?: Role;
     affiliateCode?: string;
   }
 }

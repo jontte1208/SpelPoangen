@@ -1,11 +1,26 @@
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
 import type { Tier } from "@/types/user";
 
-const OWNER_DISCORD_ID = "243147609135513612";
+function getAdminDiscordIds() {
+  const values = [
+    process.env.ADMIN_DISCORD_ID,
+    process.env.ADMIN_DISCORD_IDS,
+    process.env.OWNER_DISCORD_ID,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  return new Set(
+    values
+      .flatMap((value) => value.split(","))
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+  );
+}
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -20,10 +35,53 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
+  events: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "discord" || !user.id) {
+        return;
+      }
+
+      const discordId =
+        typeof account.providerAccountId === "string"
+          ? account.providerAccountId
+          : profile && "id" in profile
+          ? String(profile.id)
+          : null;
+
+      const isAdminDiscordId = discordId ? getAdminDiscordIds().has(discordId) : false;
+
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lastLogin: new Date(),
+            ...(discordId ? { discordId } : {}),
+            ...(isAdminDiscordId ? { role: "ADMIN" } : {}),
+          },
+        });
+      } catch (error) {
+        console.error("[auth.events.signIn] user update failed", {
+          userId: user.id,
+          provider: account.provider,
+          discordId,
+          isAdminDiscordId,
+          error,
+        });
+      }
+    },
+  },
   callbacks: {
-    async jwt({ token, profile }) {
+    async jwt({ token, profile, account, user }) {
       if (profile && "id" in profile) {
         token.discordId = String(profile.id);
+      }
+
+      if (!token.discordId && account?.provider === "discord") {
+        token.discordId = account.providerAccountId;
+      }
+
+      if (user?.id) {
+        token.sub = user.id;
       }
 
       if (!token.sub) {
@@ -77,11 +135,12 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role;
           token.affiliateCode = dbUser.affiliateCode ?? token.affiliateCode;
 
-          // Auto-promote owner Discord account to ADMIN
-          const isOwner =
-            token.discordId === OWNER_DISCORD_ID ||
-            dbUser.discordId === OWNER_DISCORD_ID;
-          if (isOwner && dbUser.role !== "ADMIN") {
+          const adminDiscordIds = getAdminDiscordIds();
+          const shouldBeAdmin =
+            (typeof token.discordId === "string" && adminDiscordIds.has(token.discordId)) ||
+            (typeof dbUser.discordId === "string" && adminDiscordIds.has(dbUser.discordId));
+
+          if (shouldBeAdmin && dbUser.role !== "ADMIN") {
             await prisma.user.update({
               where: { id: dbUser.id },
               data: { role: "ADMIN" },
@@ -89,7 +148,13 @@ export const authOptions: NextAuthOptions = {
             token.role = "ADMIN";
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("[auth.callbacks.jwt] db lookup failed", {
+          tokenSub: token.sub,
+          tokenEmail: token.email,
+          tokenDiscordId: token.discordId,
+          error,
+        });
         // Fall back to token defaults when the database is unavailable.
       }
 
@@ -104,7 +169,7 @@ export const authOptions: NextAuthOptions = {
         session.user.streak = typeof token.streak === "number" ? token.streak : 0;
         session.user.level = typeof token.level === "number" ? token.level : 1;
         session.user.tier = (token.tier as Tier | undefined) ?? "FREE";
-        session.user.role = token.role ?? "USER";
+        session.user.role = token.role === "ADMIN" ? "ADMIN" : "USER";
         session.user.affiliateCode =
           typeof token.affiliateCode === "string" ? token.affiliateCode : undefined;
       }
