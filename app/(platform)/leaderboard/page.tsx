@@ -1,9 +1,28 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { SectionIntro } from "@/components/dashboard/SectionIntro";
 
 export const metadata = { title: "Topplista" };
 
-export default function LeaderboardPage() {
+function OwnerBadge() {
+  return (
+    <span className="inline-flex items-center rounded-md border border-neon-cyan/40 bg-neon-cyan/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.4)]">
+      Owner
+    </span>
+  );
+}
+
+const entries = [
+  { rank: "01", name: "ShadowLoot", xp: "1280 XP", isAdmin: false },
+  { rank: "02", name: "NovaAim", xp: "1145 XP", isAdmin: false },
+  { rank: "03", name: "Jontte0067", xp: "980 XP", isAdmin: true },
+];
+
+export default async function LeaderboardPage() {
+  const session = await getServerSession(authOptions);
+  const currentUserIsAdmin = session?.user?.role === "ADMIN";
+
   return (
     <main>
       <SectionIntro
@@ -13,24 +32,26 @@ export default function LeaderboardPage() {
       />
 
       <div className="space-y-4">
-        {[
-          ["01", "ShadowLoot", "1280 XP"],
-          ["02", "NovaAim", "1145 XP"],
-          ["03", "Jontte0067", "980 XP"],
-        ].map(([rank, name, xp]) => (
-          <Card key={rank} className="rounded-3xl bg-slate-950/70 p-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <span className="font-display text-2xl text-neon-cyan">{rank}</span>
-                <div>
-                  <p className="font-medium text-white">{name}</p>
-                  <p className="text-sm text-slate-400">Weekly leaderboard preview</p>
+        {entries.map(({ rank, name, xp, isAdmin }) => {
+          const showBadge = isAdmin || (currentUserIsAdmin && name === session?.user?.name);
+          return (
+            <Card key={rank} className="rounded-3xl bg-slate-950/70 p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="font-display text-2xl text-neon-cyan">{rank}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white">{name}</p>
+                      {showBadge && <OwnerBadge />}
+                    </div>
+                    <p className="text-sm text-slate-400">Weekly leaderboard preview</p>
+                  </div>
                 </div>
+                <span className="font-mono text-sm text-white">{xp}</span>
               </div>
-              <span className="font-mono text-sm text-white">{xp}</span>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </main>
   );

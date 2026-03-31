@@ -3,6 +3,8 @@ import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
 import type { Tier } from "@/types/user";
 
+const OWNER_DISCORD_ID = "243147609135513612";
+
 async function addUserToDiscordServer(
   discordUserId: string,
   accessToken: string
@@ -62,6 +64,7 @@ export const authOptions: NextAuthOptions = {
       token.streak = 0;
       token.level = 1;
       token.tier = "FREE";
+      token.role = "USER";
       token.affiliateCode = `SP-${token.sub.slice(0, 8).toUpperCase()}`;
 
       try {
@@ -85,6 +88,7 @@ export const authOptions: NextAuthOptions = {
             streak: true,
             level: true,
             tier: true,
+            role: true,
             affiliateCode: true,
           },
         });
@@ -97,7 +101,17 @@ export const authOptions: NextAuthOptions = {
           token.streak = dbUser.streak;
           token.level = dbUser.level;
           token.tier = dbUser.tier;
+          token.role = dbUser.role;
           token.affiliateCode = dbUser.affiliateCode ?? token.affiliateCode;
+
+          // Auto-promote owner Discord account to ADMIN
+          if (token.discordId === OWNER_DISCORD_ID && dbUser.role !== "ADMIN") {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { role: "ADMIN" },
+            });
+            token.role = "ADMIN";
+          }
         }
       } catch {
         // Fall back to token defaults when the database is unavailable.
@@ -114,6 +128,7 @@ export const authOptions: NextAuthOptions = {
         session.user.streak = typeof token.streak === "number" ? token.streak : 0;
         session.user.level = typeof token.level === "number" ? token.level : 1;
         session.user.tier = (token.tier as Tier | undefined) ?? "FREE";
+        session.user.role = token.role ?? "USER";
         session.user.affiliateCode =
           typeof token.affiliateCode === "string" ? token.affiliateCode : undefined;
       }

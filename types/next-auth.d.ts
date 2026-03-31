@@ -15,6 +15,7 @@ declare module "next-auth" {
       streak: number;
       level: number;
       tier: Tier;
+      role: "USER" | "ADMIN";
       affiliateCode?: string;
     };
   }
@@ -29,6 +30,7 @@ declare module "next-auth/jwt" {
     streak?: number;
     level?: number;
     tier?: Tier;
+    role?: "USER" | "ADMIN";
     affiliateCode?: string;
   }
 }
