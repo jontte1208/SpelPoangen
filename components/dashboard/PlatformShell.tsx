@@ -1,9 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Coins, Gem } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Coins, Gem, User, Settings, LogOut, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { signOut } from "next-auth/react";
 import { cn, xpForLevel } from "@/lib/utils";
 import { TIER_COLORS, TIER_LABELS } from "@/types/user";
 import type { Tier } from "@/types/user";
@@ -15,6 +17,11 @@ const navItems = [
   { href: "/shop", label: "Butik" },
   { href: "/leaderboard", label: "Topplista" },
   { href: "/premium", label: "Premium", premium: true },
+];
+
+const dropdownItems = [
+  { href: "/profile", label: "Profil", icon: User },
+  { href: "/profile", label: "Inställningar", icon: Settings },
 ];
 
 type PlatformShellProps = {
@@ -50,6 +57,19 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
   const currentLevelXP = Math.max(user.xp - currentThreshold, 0);
   const progress = Math.min(Math.max((currentLevelXP / levelRange) * 100, 0), 100);
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#020617] px-4 pb-8 pt-0 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -83,31 +103,80 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
             </nav>
 
             <div className="flex items-center gap-2">
-              <Link
-                href="/profile"
-                title="Visa min profil"
-                aria-label="Visa min profil"
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 transition-all hover:border-neon-cyan/30 hover:bg-neon-cyan/10 hover:opacity-80"
-              >
-                {user.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.image}
-                    alt={user.name ?? "Avatar"}
-                    className="h-8 w-8 rounded-lg border border-neon-cyan/30 object-cover"
-                  />
-                ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 text-xs font-semibold text-neon-cyan">
-                    {getInitials(user.name)}
+              <div ref={dropdownRef} className="relative">
+                <button
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  aria-label="Profilmeny"
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 transition-all hover:border-neon-cyan/30 hover:bg-neon-cyan/10"
+                >
+                  {user.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.image}
+                      alt={user.name ?? "Avatar"}
+                      className="h-8 w-8 rounded-lg border border-neon-cyan/30 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 text-xs font-semibold text-neon-cyan">
+                      {getInitials(user.name)}
+                    </div>
+                  )}
+                  <div className="hidden leading-tight md:block">
+                    <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
+                    <p className={cn("text-[10px] uppercase tracking-[0.18em]", TIER_COLORS[user.tier])}>
+                      {TIER_LABELS[user.tier]}
+                    </p>
                   </div>
-                )}
-                <div className="hidden leading-tight md:block">
-                  <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
-                  <p className={cn("text-[10px] uppercase tracking-[0.18em]", TIER_COLORS[user.tier])}>
-                    {TIER_LABELS[user.tier]}
-                  </p>
-                </div>
-              </Link>
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "hidden text-slate-400 transition-transform duration-200 md:block",
+                      dropdownOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {dropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-xl border border-white/10 bg-slate-900/95 shadow-xl backdrop-blur-md"
+                    >
+                      <div className="border-b border-white/5 px-3 py-2.5">
+                        <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
+                        <p className={cn("text-[10px] uppercase tracking-[0.18em]", TIER_COLORS[user.tier])}>
+                          {TIER_LABELS[user.tier]}
+                        </p>
+                      </div>
+
+                      <div className="p-1">
+                        {dropdownItems.map((item) => (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                          >
+                            <item.icon size={15} className="text-slate-400" />
+                            {item.label}
+                          </Link>
+                        ))}
+
+                        <button
+                          onClick={() => signOut({ callbackUrl: "/" })}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                        >
+                          <LogOut size={15} className="text-slate-400" />
+                          Logga ut
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 
