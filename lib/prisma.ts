@@ -1,37 +1,15 @@
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function normalizeConnectionString(value: string | undefined) {
-  if (!value) {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  const withoutMatchingQuotes =
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-      ? trimmed.slice(1, -1)
-      : trimmed;
-
-  return withoutMatchingQuotes;
-}
-
 function createPrismaClient() {
-  const connectionString = normalizeConnectionString(process.env.DATABASE_URL);
-
-  if (!connectionString) {
+  if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is missing. Set it in your environment variables.");
   }
 
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
   return new PrismaClient({
-    adapter,
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]

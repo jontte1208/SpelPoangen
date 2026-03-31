@@ -4,8 +4,6 @@ const nextConfig = {
     serverComponentsExternalPackages: [
       "@prisma/client",
       "prisma",
-      "pg",
-      "@prisma/adapter-pg",
     ],
   },
 };
