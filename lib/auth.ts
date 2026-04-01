@@ -280,7 +280,7 @@ export const authOptions: NextAuthOptions = {
           token.gold = dbUser.gold;
           token.streak = dbUser.streak;
           token.level = dbUser.level;
-          token.tier = dbUser.tier;
+          token.tier = dbUser.tier ?? "FREE";
           token.role = dbUser.role;
           token.affiliateCode = dbUser.affiliateCode ?? token.affiliateCode;
 
