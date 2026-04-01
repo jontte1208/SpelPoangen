@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateLevel } from "@/lib/gamification";
 import type { Tier } from "@prisma/client";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -122,6 +123,13 @@ export async function PATCH(
 
   const { xpDelta, coinsDelta, tier } = await req.json();
 
+  const parsedXpDelta = Number.isFinite(Number(xpDelta))
+    ? Math.trunc(Number(xpDelta))
+    : 0;
+  const parsedCoinsDelta = Number.isFinite(Number(coinsDelta))
+    ? Math.trunc(Number(coinsDelta))
+    : 0;
+
   let nextTier: Tier | undefined;
   if (typeof tier === "string") {
     if (!ALLOWED_TIERS.has(tier as Tier)) {
@@ -130,14 +138,30 @@ export async function PATCH(
     nextTier = tier as Tier;
   }
 
+  const currentUser = await prisma.user.findUniqueOrThrow({
+    where: { id: params.id },
+    select: { xp: true },
+  });
+
+  const nextXP = Math.max(0, currentUser.xp + parsedXpDelta);
+  const nextLevel = calculateLevel(nextXP);
+
   const user = await prisma.user.update({
     where: { id: params.id },
     data: {
-      xp: { increment: xpDelta ?? 0 },
-      coins: { increment: coinsDelta ?? 0 },
+      xp: nextXP,
+      level: nextLevel,
+      coins: { increment: parsedCoinsDelta },
       ...(nextTier ? { tier: nextTier } : {}),
     },
-    select: { id: true, xp: true, coins: true, tier: true, discordId: true },
+    select: {
+      id: true,
+      xp: true,
+      level: true,
+      coins: true,
+      tier: true,
+      discordId: true,
+    },
   });
 
   if (nextTier && user.discordId) {
@@ -160,6 +184,7 @@ export async function PATCH(
   return NextResponse.json({
     id: user.id,
     xp: user.xp,
+    level: user.level,
     coins: user.coins,
     tier: user.tier,
   });

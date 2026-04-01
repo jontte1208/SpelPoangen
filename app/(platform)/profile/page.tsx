@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import XPBar from "@/components/dashboard/XPBar";
 import { authOptions } from "@/lib/auth";
 import { xpForLevel } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Min profil" };
 
@@ -13,7 +14,28 @@ export default async function ProfilePage() {
     redirect("/");
   }
 
-  const { user } = session;
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      xp: true,
+      coins: true,
+      streak: true,
+      level: true,
+      tier: true,
+      affiliateCode: true,
+    },
+  });
+
+  const user = {
+    ...session.user,
+    xp: dbUser?.xp ?? session.user.xp,
+    coins: dbUser?.coins ?? session.user.coins,
+    streak: dbUser?.streak ?? session.user.streak,
+    level: dbUser?.level ?? session.user.level,
+    tier: dbUser?.tier ?? session.user.tier,
+    affiliateCode: dbUser?.affiliateCode ?? session.user.affiliateCode,
+  };
+
   const currentThreshold = xpForLevel(user.level);
   const nextThreshold = xpForLevel(user.level + 1);
   const levelRange = Math.max(nextThreshold - currentThreshold, 1);

@@ -14,5 +14,7 @@ export function formatSEK(amount: number): string {
 }
 
 export function xpForLevel(level: number): number {
-  return Math.floor(100 * Math.pow(level, 1.8));
+  // Keep this in sync with lib/gamification.ts (xpThreshold).
+  if (level <= 1) return 0;
+  return Math.floor(500 * Math.pow(level - 1, 2));
 }
