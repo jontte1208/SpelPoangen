@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 const inviteUrl = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
-export default function DiscordInvitePage() {
+function DiscordInviteContent() {
   const searchParams = useSearchParams();
 
   const nextPath = useMemo(() => {
@@ -55,5 +55,13 @@ export default function DiscordInvitePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function DiscordInvitePage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen" />}>
+      <DiscordInviteContent />
+    </Suspense>
   );
 }
