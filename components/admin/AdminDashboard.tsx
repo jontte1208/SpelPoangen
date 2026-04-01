@@ -8,6 +8,8 @@ import {
   Zap,
   Ban,
   CheckCircle,
+  Check,
+  Copy,
   X,
   ChevronUp,
   ChevronDown,
@@ -21,19 +23,36 @@ import { cn } from "@/lib/utils";
 type AdminUser = {
   id: string;
   name: string | null;
+  email: string | null;
   image: string | null;
   discordId: string | null;
   xp: number;
   coins: number;
   gold: number;
   level: number;
+  streak: number;
   tier: string;
   role: string;
   isBanned: boolean;
+  affiliateCode: string | null;
+  referredBy: string | null;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  stripeCurrentPeriodEnd: string | null;
+  lastLogin: string | null;
   createdAt: string;
+  updatedAt: string;
+  accounts: Array<{
+    providerAccountId: string;
+    scope: string | null;
+    expires_at: number | null;
+    token_type: string | null;
+  }>;
 };
 
 type EditModal = { user: AdminUser; xpDelta: string; coinsDelta: string };
+
+type DetailsModal = { user: AdminUser };
 
 function StatCard({
   icon: Icon,
@@ -61,8 +80,11 @@ function StatCard({
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [search, setSearch] = useState("");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
+  const [detailsModal, setDetailsModal] = useState<DetailsModal | null>(null);
   const [saving, setSaving] = useState(false);
   const [doubleXP, setDoubleXP] = useState(false);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
@@ -107,6 +129,34 @@ export default function AdminDashboard() {
     return `${m}:${s}`;
   }
 
+  function formatDate(date: string | null) {
+    if (!date) return "-";
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "-";
+    return parsed.toLocaleString("sv-SE");
+  }
+
+  function formatDiscordScopes(scope: string | null) {
+    if (!scope) return "-";
+    return scope
+      .split(" ")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  async function copyToClipboard(value: string, fieldKey: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(fieldKey);
+      setTimeout(() => {
+        setCopiedField((current) => (current === fieldKey ? null : current));
+      }, 1500);
+    } catch {
+      // Silently ignore copy errors to avoid breaking admin flow.
+    }
+  }
+
   async function saveStats() {
     if (!editModal) return;
     setSaving(true);
@@ -149,6 +199,13 @@ export default function AdminDashboard() {
 
   const totalXP = users.reduce((s, u) => s + u.xp, 0);
   const banned = users.filter((u) => u.isBanned).length;
+  const filteredUsers = users.filter((user) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [user.name, user.email, user.discordId, user.id]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(q));
+  });
 
   return (
     <div className="min-h-screen bg-[#010b17] px-4 pb-12 pt-0 sm:px-6 lg:px-8">
@@ -209,11 +266,25 @@ export default function AdminDashboard() {
         {/* Users table */}
         <div className="rounded-2xl border border-white/5 bg-slate-900/50 backdrop-blur-sm">
           <div className="border-b border-white/5 px-5 py-4">
-            <div className="flex items-center gap-2">
-              <Users size={15} className="text-neon-cyan" />
-              <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
-                Användarlista
-              </h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={15} className="text-neon-cyan" />
+                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
+                  Användarlista
+                </h2>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-400">
+                  {filteredUsers.length}/{users.length}
+                </span>
+              </div>
+              <div className="w-full sm:w-80">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Sök: namn, e-post, Discord ID, User ID"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white placeholder-slate-600 outline-none transition-colors focus:border-neon-cyan/40"
+                />
+              </div>
             </div>
           </div>
 
@@ -221,7 +292,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-center py-16">
               <Loader2 size={22} className="animate-spin text-neon-cyan/50" />
             </div>
-          ) : users.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <p className="py-16 text-center text-sm text-slate-500">Inga användare hittades.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -239,7 +310,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <tr
                       key={user.id}
                       className={cn(
@@ -263,6 +334,25 @@ export default function AdminDashboard() {
                           )}
                           <div>
                             <p className="font-medium text-white">{user.name ?? "Okänd"}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[11px] text-slate-500">{user.discordId ?? "Ingen Discord ID"}</p>
+                              {user.discordId ? (
+                                <button
+                                  onClick={() => copyToClipboard(user.discordId!, `row-discord-id-${user.id}`)}
+                                  className="rounded-md border border-white/10 bg-white/5 p-1 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                                  title="Kopiera Discord ID"
+                                >
+                                  {copiedField === `row-discord-id-${user.id}` ? <Check size={10} /> : <Copy size={10} />}
+                                </button>
+                              ) : null}
+                              <button
+                                onClick={() => copyToClipboard(user.id, `row-user-id-${user.id}`)}
+                                className="rounded-md border border-white/10 bg-white/5 p-1 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                                title="Kopiera User ID"
+                              >
+                                {copiedField === `row-user-id-${user.id}` ? <Check size={10} /> : <Copy size={10} />}
+                              </button>
+                            </div>
                             {user.role === "ADMIN" && (
                               <span className="text-[9px] uppercase tracking-[0.15em] text-neon-cyan">
                                 Admin
@@ -299,6 +389,12 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setDetailsModal({ user })}
+                            className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-semibold text-blue-300 transition-all hover:border-blue-500/40 hover:bg-blue-500/10"
+                          >
+                            Visa info
+                          </button>
                           <button
                             onClick={() =>
                               setEditModal({ user, xpDelta: "", coinsDelta: "" })
@@ -436,6 +532,148 @@ export default function AdminDashboard() {
                 >
                   {saving ? <Loader2 size={14} className="animate-spin" /> : null}
                   Spara
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User Details Modal */}
+      <AnimatePresence>
+        {detailsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setDetailsModal(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#010f1e] p-6 shadow-2xl"
+            >
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-white">Användardetaljer</h3>
+                  <p className="text-xs text-slate-500">{detailsModal.user.name ?? "Okänd"}</p>
+                </div>
+                <button
+                  onClick={() => setDetailsModal(null)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">User ID</p>
+                    <button
+                      onClick={() => copyToClipboard(detailsModal.user.id, `details-user-id-${detailsModal.user.id}`)}
+                      className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-300 transition-colors hover:bg-white/10"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {copiedField === `details-user-id-${detailsModal.user.id}` ? <Check size={10} /> : <Copy size={10} />}
+                        {copiedField === `details-user-id-${detailsModal.user.id}` ? "Kopierad" : "Kopiera"}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">{detailsModal.user.id}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discord ID</p>
+                    {detailsModal.user.discordId ? (
+                      <button
+                        onClick={() => copyToClipboard(detailsModal.user.discordId!, `details-discord-id-${detailsModal.user.id}`)}
+                        className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-300 transition-colors hover:bg-white/10"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {copiedField === `details-discord-id-${detailsModal.user.id}` ? <Check size={10} /> : <Copy size={10} />}
+                          {copiedField === `details-discord-id-${detailsModal.user.id}` ? "Kopierad" : "Kopiera"}
+                        </span>
+                      </button>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">{detailsModal.user.discordId ?? "-"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:col-span-2">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">E-post</p>
+                  <p className="mt-1 break-all text-xs text-slate-200">{detailsModal.user.email ?? "-"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Skapad</p>
+                  <p className="mt-1 text-xs text-slate-200">{formatDate(detailsModal.user.createdAt)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Senast uppdaterad</p>
+                  <p className="mt-1 text-xs text-slate-200">{formatDate(detailsModal.user.updatedAt)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Senaste login</p>
+                  <p className="mt-1 text-xs text-slate-200">{formatDate(detailsModal.user.lastLogin)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Streak</p>
+                  <p className="mt-1 font-mono text-xs text-slate-200">{detailsModal.user.streak}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Roll / Tier</p>
+                  <p className="mt-1 text-xs text-slate-200">{detailsModal.user.role} / {detailsModal.user.tier}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Status</p>
+                  <p className="mt-1 text-xs text-slate-200">{detailsModal.user.isBanned ? "Bannad" : "Aktiv"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Affiliate Code</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">{detailsModal.user.affiliateCode ?? "-"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Referred By</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">{detailsModal.user.referredBy ?? "-"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Stripe Customer</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">{detailsModal.user.stripeCustomerId ?? "-"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Stripe Subscription</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">{detailsModal.user.stripeSubscriptionId ?? "-"}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:col-span-2">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discord OAuth scopes</p>
+                  <p className="mt-1 break-all text-xs text-slate-200">
+                    {formatDiscordScopes(detailsModal.user.accounts[0]?.scope ?? null)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discord providerAccountId</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-200">
+                    {detailsModal.user.accounts[0]?.providerAccountId ?? "-"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discord token expires</p>
+                  <p className="mt-1 text-xs text-slate-200">
+                    {detailsModal.user.accounts[0]?.expires_at
+                      ? formatDate(new Date(detailsModal.user.accounts[0].expires_at * 1000).toISOString())
+                      : "-"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={() => setDetailsModal(null)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+                >
+                  Stäng
                 </button>
               </div>
             </motion.div>
