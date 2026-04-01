@@ -88,6 +88,7 @@ export default function AdminDashboard() {
   const [detailsModal, setDetailsModal] = useState<DetailsModal | null>(null);
   const [saving, setSaving] = useState(false);
   const [tierUpdatingUserId, setTierUpdatingUserId] = useState<string | null>(null);
+  const [tierSyncStatus, setTierSyncStatus] = useState<{ [key: string]: "syncing" | "success" | "error" | null }>({});
   const [doubleXP, setDoubleXP] = useState(false);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -164,9 +165,13 @@ export default function AdminDashboard() {
     setSaving(true);
     const xpDelta = parseInt(editModal.xpDelta) || 0;
     const coinsDelta = parseInt(editModal.coinsDelta) || 0;
-    const tier = ["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND"].includes(editModal.tier)
+    const tier = ["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND", "ADMIN", "OWNER", "BANNAD"].includes(editModal.tier)
       ? editModal.tier
       : undefined;
+    
+    // Show syncing status
+    setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "syncing" }));
+    
     const res = await fetch(`/api/admin/users/${editModal.user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -186,13 +191,23 @@ export default function AdminDashboard() {
             : u
         )
       );
+      setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "success" }));
+      setTimeout(() => {
+        setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: null }));
+      }, 2000);
+    } else {
+      setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "error" }));
+      setTimeout(() => {
+        setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: null }));
+      }, 2000);
     }
     setSaving(false);
     setEditModal(null);
   }
 
-  async function setUserTier(user: AdminUser, tier: "FREE" | "GOLD" | "PREMIUM" | "ROOKIE" | "GRINDER" | "LEGEND") {
+  async function setUserTier(user: AdminUser, tier: string) {
     setTierUpdatingUserId(user.id);
+    setTierSyncStatus((prev) => ({ ...prev, [user.id]: "syncing" }));
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
@@ -201,6 +216,10 @@ export default function AdminDashboard() {
       });
 
       if (!res.ok) {
+        setTierSyncStatus((prev) => ({ ...prev, [user.id]: "error" }));
+        setTimeout(() => {
+          setTierSyncStatus((prev) => ({ ...prev, [user.id]: null }));
+        }, 2000);
         return;
       }
 
@@ -212,6 +231,10 @@ export default function AdminDashboard() {
             : u
         )
       );
+      setTierSyncStatus((prev) => ({ ...prev, [user.id]: "success" }));
+      setTimeout(() => {
+        setTierSyncStatus((prev) => ({ ...prev, [user.id]: null }));
+      }, 2000);
       setDetailsModal((current) =>
         current && current.user.id === user.id
           ? {
@@ -452,22 +475,27 @@ export default function AdminDashboard() {
                           >
                             Redigera
                           </button>
-                          <button
-                            onClick={() => setUserTier(user, user.tier === "PREMIUM" ? "FREE" : "PREMIUM")}
-                            disabled={tierUpdatingUserId === user.id}
-                            className={cn(
-                              "rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                              user.tier === "PREMIUM"
-                                ? "border-amber-500/20 bg-amber-500/5 text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/10"
-                                : "border-violet-500/20 bg-violet-500/5 text-violet-300 hover:border-violet-500/40 hover:bg-violet-500/10"
-                            )}
-                          >
-                            {tierUpdatingUserId === user.id
-                              ? "Sparar..."
-                              : user.tier === "PREMIUM"
-                              ? "Ta bort VIP"
-                              : "Gor VIP"}
-                          </button>
+                            <div className="relative">
+                              <select
+                                value={user.tier}
+                                onChange={(e) => setUserTier(user, e.target.value)}
+                                disabled={tierUpdatingUserId === user.id}
+                                className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-1.5 text-[11px] font-semibold text-violet-300 transition-all hover:border-violet-500/40 hover:bg-violet-500/10 disabled:cursor-not-allowed disabled:opacity-50 appearance-none pr-8"
+                              >
+                                <option value="FREE">FREE</option>
+                                <option value="ROOKIE">ROOKIE</option>
+                                <option value="GRINDER">GRINDER</option>
+                                <option value="LEGEND">LEGEND</option>
+                                <option value="PREMIUM">PREMIUM (VIP)</option>
+                                <option value="GOLD">GOLD</option>
+                                <option value="ADMIN">ADMIN</option>
+                                <option value="OWNER">OWNER</option>
+                                <option value="BANNAD">BANNAD</option>
+                              </select>
+                              {tierUpdatingUserId === user.id && (
+                                <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-violet-300 pointer-events-none" />
+                              )}
+                            </div>
                           <button
                             onClick={() => toggleBan(user)}
                             className={cn(
@@ -559,20 +587,42 @@ export default function AdminDashboard() {
 
                 <div>
                   <label className="mb-1.5 block text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                    Tier
+                    Tier / Roll
                   </label>
-                  <select
-                    value={editModal.tier}
-                    onChange={(e) => setEditModal((m) => m && { ...m, tier: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
-                  >
-                    <option value="ROOKIE">ROOKIE (LVL 1)</option>
-                    <option value="GRINDER">GRINDER (LVL 10+)</option>
-                    <option value="LEGEND">LEGEND (LVL 50+)</option>
-                    <option value="PREMIUM">PREMIUM PASS (VIP)</option>
-                    <option value="GOLD">GOLD</option>
-                    <option value="FREE">FREE</option>
-                  </select>
+                  <div className="space-y-2">
+                    <select
+                      value={editModal.tier}
+                      onChange={(e) => setEditModal((m) => m && { ...m, tier: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+                    >
+                      <option value="FREE">FREE</option>
+                      <option value="ROOKIE">ROOKIE (LVL 1)</option>
+                      <option value="GRINDER">GRINDER (LVL 10+)</option>
+                      <option value="LEGEND">LEGEND (LVL 50+)</option>
+                      <option value="PREMIUM">PREMIUM PASS (VIP)</option>
+                      <option value="GOLD">GOLD</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="OWNER">OWNER</option>
+                      <option value="BANNAD">BANNAD</option>
+                    </select>
+                    {tierSyncStatus[editModal.user.id] && (
+                      <div className={cn(
+                        "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
+                        tierSyncStatus[editModal.user.id] === "syncing" && "bg-blue-500/10 text-blue-400",
+                        tierSyncStatus[editModal.user.id] === "success" && "bg-green-500/10 text-green-400",
+                        tierSyncStatus[editModal.user.id] === "error" && "bg-red-500/10 text-red-400"
+                      )}>
+                        {tierSyncStatus[editModal.user.id] === "syncing" && <Loader2 size={13} className="animate-spin" />}
+                        {tierSyncStatus[editModal.user.id] === "success" && <Check size={13} />}
+                        {tierSyncStatus[editModal.user.id] === "error" && <X size={13} />}
+                        <span>
+                          {tierSyncStatus[editModal.user.id] === "syncing" && "Synkar med Discord..."}
+                          {tierSyncStatus[editModal.user.id] === "success" && "Synkad! Discord-roll uppdaterad"}
+                          {tierSyncStatus[editModal.user.id] === "error" && "Sync misslyckades - Discord API fel"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
