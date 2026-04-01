@@ -31,7 +31,7 @@ declare module "next-auth/jwt" {
     gold?: number;
     streak?: number;
     level?: number;
-    tier?: Tier;
+    tier: Tier;
     role?: Role;
     affiliateCode?: string;
   }
