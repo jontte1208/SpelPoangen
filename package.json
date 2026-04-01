@@ -7,9 +7,10 @@
   },
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "user:make-admin": "tsx scripts/set-admin-by-discord-id.ts",
     "postinstall": "prisma generate"

@@ -165,7 +165,7 @@ export default function AdminDashboard() {
     setSaving(true);
     const xpDelta = parseInt(editModal.xpDelta) || 0;
     const coinsDelta = parseInt(editModal.coinsDelta) || 0;
-    const tier = ["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND", "ADMIN", "OWNER", "BANNAD"].includes(editModal.tier)
+    const tier = ["FREE", "ROOKIE", "GRINDER", "LEGEND", "PREMIUM", "GOLD"].includes(editModal.tier)
       ? editModal.tier
       : undefined;
     
@@ -488,9 +488,6 @@ export default function AdminDashboard() {
                                 <option value="LEGEND">LEGEND</option>
                                 <option value="PREMIUM">PREMIUM (VIP)</option>
                                 <option value="GOLD">GOLD</option>
-                                <option value="ADMIN">ADMIN</option>
-                                <option value="OWNER">OWNER</option>
-                                <option value="BANNAD">BANNAD</option>
                               </select>
                               {tierUpdatingUserId === user.id && (
                                 <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-violet-300 pointer-events-none" />
@@ -601,9 +598,6 @@ export default function AdminDashboard() {
                       <option value="LEGEND">LEGEND (LVL 50+)</option>
                       <option value="PREMIUM">PREMIUM PASS (VIP)</option>
                       <option value="GOLD">GOLD</option>
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="OWNER">OWNER</option>
-                      <option value="BANNAD">BANNAD</option>
                     </select>
                     {tierSyncStatus[editModal.user.id] && (
                       <div className={cn(

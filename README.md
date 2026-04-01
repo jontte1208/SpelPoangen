@@ -19,6 +19,9 @@ In Vercel project settings, add these variables for Production (and Preview if n
 - DISCORD_GUILD_ID=your-discord-server-id
 - DISCORD_VIP_ROLE_ID=discord-role-id-for-vip-premium
 - DISCORD_PREMIUM_ROLE_ID=discord-role-id-for-premium-optional-alias
+- DISCORD_ROOKIE_ROLE_ID=discord-role-id-for-rookie
+- DISCORD_GRINDER_ROLE_ID=discord-role-id-for-grinder
+- DISCORD_LEGEND_ROLE_ID=discord-role-id-for-legend
 - DISCORD_GOLD_ROLE_ID=discord-role-id-for-gold-optional
 - DISCORD_FREE_ROLE_ID=discord-role-id-for-free-optional
 - ADMIN_DISCORD_ID=your-discord-user-id
@@ -34,7 +37,7 @@ Note:
 - DISCORD_BOT_TOKEN must be from the same Discord application as DISCORD_CLIENT_ID.
 - DISCORD_GUILD_ID is your server ID (example: 1488219784062570579).
 - DISCORD_VIP_ROLE_ID (or DISCORD_PREMIUM_ROLE_ID) is used when a user is set to PREMIUM in admin.
-- DISCORD_GOLD_ROLE_ID and DISCORD_FREE_ROLE_ID are optional mappings for GOLD/FREE tier sync.
+- DISCORD_ROOKIE_ROLE_ID, DISCORD_GRINDER_ROLE_ID, DISCORD_LEGEND_ROLE_ID, DISCORD_GOLD_ROLE_ID and DISCORD_FREE_ROLE_ID are optional mappings for tier sync.
 - Use the exact URL formats from Supabase dashboard:
 	- DATABASE_URL (pooler): `postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
 	- DIRECT_URL (direct): `postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres`
@@ -58,6 +61,7 @@ In Discord Developer Portal for your app:
 
 - Push your latest code to the branch connected to Vercel.
 - Trigger a redeploy (or deploy automatically on push).
+- Build now runs `prisma migrate deploy` automatically so new tier enum values are applied in production.
 
 ### 4. Verify user persistence in Supabase
 
