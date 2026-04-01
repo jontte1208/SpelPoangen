@@ -109,7 +109,11 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
               ) : (
                 <button
                   type="button"
-                  onClick={() => signIn("discord", { callbackUrl: "/dashboard" })}
+                  onClick={() =>
+                    signIn("discord", {
+                      callbackUrl: "/discord/invite?next=/dashboard",
+                    })
+                  }
                   className="inline-flex items-center justify-center rounded-xl border border-[#5865F2]/50 bg-[#5865F2]/20 px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition-all hover:opacity-90"
                 >
                   Logga in med Discord
