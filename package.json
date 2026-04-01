@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "prisma generate && prisma migrate deploy && next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
     "user:make-admin": "tsx scripts/set-admin-by-discord-id.ts",
