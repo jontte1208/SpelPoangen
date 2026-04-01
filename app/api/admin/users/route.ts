@@ -39,6 +39,7 @@ export async function GET() {
           scope: true,
           expires_at: true,
           token_type: true,
+          access_token: true,
         },
         take: 1,
       },
@@ -46,5 +47,16 @@ export async function GET() {
     orderBy: { xp: "desc" },
   });
 
-  return NextResponse.json(users);
+  const safeUsers = users.map((user) => ({
+    ...user,
+    accounts: user.accounts.map((account) => ({
+      providerAccountId: account.providerAccountId,
+      scope: account.scope,
+      expires_at: account.expires_at,
+      token_type: account.token_type,
+      hasAccessToken: typeof account.access_token === "string" && account.access_token.length > 0,
+    })),
+  }));
+
+  return NextResponse.json(safeUsers);
 }

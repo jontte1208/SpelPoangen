@@ -46,6 +46,33 @@ function getDiscordGuildConfig() {
   return { botToken, guildId };
 }
 
+async function resolveDiscordAccessToken(params: {
+  userId: string;
+  accountAccessToken: string | null;
+  providerAccountId: string | null;
+}) {
+  if (params.accountAccessToken) {
+    return params.accountAccessToken;
+  }
+
+  const discordAccount = await prisma.account.findFirst({
+    where: {
+      userId: params.userId,
+      provider: "discord",
+      ...(params.providerAccountId
+        ? { providerAccountId: params.providerAccountId }
+        : {}),
+    },
+    select: {
+      access_token: true,
+    },
+  });
+
+  return typeof discordAccount?.access_token === "string"
+    ? discordAccount.access_token
+    : null;
+}
+
 async function addUserToDiscordGuild(params: {
   guildId: string;
   botToken: string;
@@ -108,8 +135,10 @@ export const authOptions: NextAuthOptions = {
           : null;
 
       const isAdminDiscordId = discordId ? getAdminDiscordIds().has(discordId) : false;
-      const accessToken =
-        typeof account.access_token === "string" ? account.access_token : null;
+      const providerAccountId =
+        typeof account.providerAccountId === "string" ? account.providerAccountId : null;
+
+      let accessToken: string | null = null;
 
       try {
         await prisma.user.update({
@@ -130,12 +159,40 @@ export const authOptions: NextAuthOptions = {
         });
       }
 
+      try {
+        accessToken = await resolveDiscordAccessToken({
+          userId: user.id,
+          accountAccessToken:
+            typeof account.access_token === "string" ? account.access_token : null,
+          providerAccountId,
+        });
+      } catch (error) {
+        console.error("[auth.events.signIn] resolve discord access token failed", {
+          userId: user.id,
+          discordId,
+          providerAccountId,
+          error: toErrorMeta(error),
+        });
+      }
+
       if (!discordId || !accessToken) {
+        console.warn("[auth.events.signIn] discord auto-join skipped", {
+          userId: user.id,
+          discordId,
+          hasAccessToken: Boolean(accessToken),
+          reason: !discordId ? "missing_discord_id" : "missing_access_token",
+        });
         return;
       }
 
       const guildConfig = getDiscordGuildConfig();
       if (!guildConfig) {
+        console.warn("[auth.events.signIn] discord auto-join skipped", {
+          userId: user.id,
+          discordId,
+          hasAccessToken: Boolean(accessToken),
+          reason: "missing_guild_config",
+        });
         return;
       }
 

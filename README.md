@@ -17,6 +17,10 @@ In Vercel project settings, add these variables for Production (and Preview if n
 - DISCORD_CLIENT_SECRET=your-discord-client-secret
 - DISCORD_BOT_TOKEN=your-discord-bot-token
 - DISCORD_GUILD_ID=your-discord-server-id
+- DISCORD_VIP_ROLE_ID=discord-role-id-for-vip-premium
+- DISCORD_PREMIUM_ROLE_ID=discord-role-id-for-premium-optional-alias
+- DISCORD_GOLD_ROLE_ID=discord-role-id-for-gold-optional
+- DISCORD_FREE_ROLE_ID=discord-role-id-for-free-optional
 - ADMIN_DISCORD_ID=your-discord-user-id
 
 Optional for multiple admins:
@@ -29,6 +33,8 @@ Note:
 - If both ADMIN_DISCORD_ID and ADMIN_DISCORD_IDS are set, both are accepted.
 - DISCORD_BOT_TOKEN must be from the same Discord application as DISCORD_CLIENT_ID.
 - DISCORD_GUILD_ID is your server ID (example: 1488219784062570579).
+- DISCORD_VIP_ROLE_ID (or DISCORD_PREMIUM_ROLE_ID) is used when a user is set to PREMIUM in admin.
+- DISCORD_GOLD_ROLE_ID and DISCORD_FREE_ROLE_ID are optional mappings for GOLD/FREE tier sync.
 - Use the exact URL formats from Supabase dashboard:
 	- DATABASE_URL (pooler): `postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
 	- DIRECT_URL (direct): `postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres`

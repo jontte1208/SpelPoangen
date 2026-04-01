@@ -52,9 +52,12 @@ model VerificationToken {
 // ------------------------------------
 
 enum Tier {
-  FREE
-  GOLD
+  ROOKIE
+  GRINDER
+  LEGEND
   PREMIUM
+  GOLD
+  FREE
 }
 
 enum Role {

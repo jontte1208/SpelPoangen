@@ -47,10 +47,11 @@ type AdminUser = {
     scope: string | null;
     expires_at: number | null;
     token_type: string | null;
+    hasAccessToken: boolean;
   }>;
 };
 
-type EditModal = { user: AdminUser; xpDelta: string; coinsDelta: string };
+type EditModal = { user: AdminUser; xpDelta: string; coinsDelta: string; tier: string };
 
 type DetailsModal = { user: AdminUser };
 
@@ -86,6 +87,7 @@ export default function AdminDashboard() {
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [detailsModal, setDetailsModal] = useState<DetailsModal | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tierUpdatingUserId, setTierUpdatingUserId] = useState<string | null>(null);
   const [doubleXP, setDoubleXP] = useState(false);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -162,23 +164,67 @@ export default function AdminDashboard() {
     setSaving(true);
     const xpDelta = parseInt(editModal.xpDelta) || 0;
     const coinsDelta = parseInt(editModal.coinsDelta) || 0;
+    const tier = ["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND"].includes(editModal.tier)
+      ? editModal.tier
+      : undefined;
     const res = await fetch(`/api/admin/users/${editModal.user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ xpDelta, coinsDelta }),
+      body: JSON.stringify({ xpDelta, coinsDelta, tier }),
     });
     if (res.ok) {
       const updated = await res.json();
       setUsers((prev) =>
         prev.map((u) =>
           u.id === editModal.user.id
-            ? { ...u, xp: updated.xp, coins: updated.coins }
+            ? {
+                ...u,
+                xp: updated.xp,
+                coins: updated.coins,
+                tier: typeof updated.tier === "string" ? updated.tier : u.tier,
+              }
             : u
         )
       );
     }
     setSaving(false);
     setEditModal(null);
+  }
+
+  async function setUserTier(user: AdminUser, tier: "FREE" | "GOLD" | "PREMIUM" | "ROOKIE" | "GRINDER" | "LEGEND") {
+    setTierUpdatingUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+
+      if (!res.ok) {
+        return;
+      }
+
+      const updated = await res.json();
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id
+            ? { ...u, tier: typeof updated.tier === "string" ? updated.tier : tier }
+            : u
+        )
+      );
+      setDetailsModal((current) =>
+        current && current.user.id === user.id
+          ? {
+              user: {
+                ...current.user,
+                tier: typeof updated.tier === "string" ? updated.tier : tier,
+              },
+            }
+          : current
+      );
+    } finally {
+      setTierUpdatingUserId(null);
+    }
   }
 
   async function toggleBan(user: AdminUser) {
@@ -368,8 +414,11 @@ export default function AdminDashboard() {
                         <span
                           className={cn(
                             "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]",
+                            user.tier === "LEGEND" && "bg-amber-500/15 text-amber-400",
                             user.tier === "PREMIUM" && "bg-purple-500/15 text-purple-400",
+                            user.tier === "GRINDER" && "bg-green-500/15 text-green-400",
                             user.tier === "GOLD" && "bg-yellow-500/15 text-yellow-400",
+                            user.tier === "ROOKIE" && "bg-blue-500/15 text-blue-400",
                             user.tier === "FREE" && "bg-slate-500/15 text-slate-400"
                           )}
                         >
@@ -397,11 +446,27 @@ export default function AdminDashboard() {
                           </button>
                           <button
                             onClick={() =>
-                              setEditModal({ user, xpDelta: "", coinsDelta: "" })
+                              setEditModal({ user, xpDelta: "", coinsDelta: "", tier: user.tier })
                             }
                             className="rounded-lg border border-neon-cyan/20 bg-neon-cyan/5 px-3 py-1.5 text-[11px] font-semibold text-neon-cyan transition-all hover:border-neon-cyan/40 hover:bg-neon-cyan/10"
                           >
                             Redigera
+                          </button>
+                          <button
+                            onClick={() => setUserTier(user, user.tier === "PREMIUM" ? "FREE" : "PREMIUM")}
+                            disabled={tierUpdatingUserId === user.id}
+                            className={cn(
+                              "rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                              user.tier === "PREMIUM"
+                                ? "border-amber-500/20 bg-amber-500/5 text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/10"
+                                : "border-violet-500/20 bg-violet-500/5 text-violet-300 hover:border-violet-500/40 hover:bg-violet-500/10"
+                            )}
+                          >
+                            {tierUpdatingUserId === user.id
+                              ? "Sparar..."
+                              : user.tier === "PREMIUM"
+                              ? "Ta bort VIP"
+                              : "Gor VIP"}
                           </button>
                           <button
                             onClick={() => toggleBan(user)}
@@ -490,6 +555,24 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    Tier
+                  </label>
+                  <select
+                    value={editModal.tier}
+                    onChange={(e) => setEditModal((m) => m && { ...m, tier: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+                  >
+                    <option value="ROOKIE">ROOKIE (LVL 1)</option>
+                    <option value="GRINDER">GRINDER (LVL 10+)</option>
+                    <option value="LEGEND">LEGEND (LVL 50+)</option>
+                    <option value="PREMIUM">PREMIUM PASS (VIP)</option>
+                    <option value="GOLD">GOLD</option>
+                    <option value="FREE">FREE</option>
+                  </select>
                 </div>
 
                 <div>
@@ -650,6 +733,12 @@ export default function AdminDashboard() {
                   <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discord OAuth scopes</p>
                   <p className="mt-1 break-all text-xs text-slate-200">
                     {formatDiscordScopes(detailsModal.user.accounts[0]?.scope ?? null)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Discord access token</p>
+                  <p className="mt-1 text-xs text-slate-200">
+                    {detailsModal.user.accounts[0]?.hasAccessToken ? "Finns" : "Saknas"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
