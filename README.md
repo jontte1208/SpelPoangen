@@ -15,6 +15,8 @@ In Vercel project settings, add these variables for Production (and Preview if n
 - DIRECT_URL=your-supabase-direct-url-port-5432
 - DISCORD_CLIENT_ID=your-discord-client-id
 - DISCORD_CLIENT_SECRET=your-discord-client-secret
+- DISCORD_BOT_TOKEN=your-discord-bot-token
+- DISCORD_GUILD_ID=your-discord-server-id
 - ADMIN_DISCORD_ID=your-discord-user-id
 
 Optional for multiple admins:
@@ -25,6 +27,8 @@ Note:
 
 - Keep DATABASE_URL and DIRECT_URL pointing at the same Supabase project.
 - If both ADMIN_DISCORD_ID and ADMIN_DISCORD_IDS are set, both are accepted.
+- DISCORD_BOT_TOKEN must be from the same Discord application as DISCORD_CLIENT_ID.
+- DISCORD_GUILD_ID is your server ID (example: 1488219784062570579).
 - Use the exact URL formats from Supabase dashboard:
 	- DATABASE_URL (pooler): `postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
 	- DIRECT_URL (direct): `postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres`
@@ -36,6 +40,13 @@ In Discord Developer Portal for your app:
 
 - Add https://your-domain.com/api/auth/callback/discord
 - Keep http://localhost:3000/api/auth/callback/discord for local development
+- Ensure your OAuth2 flow requests `guilds.join` (already configured in code).
+
+### 2.1 Configure Discord bot permissions for auto-join
+
+- Invite your bot to the target server (DISCORD_GUILD_ID).
+- In Developer Portal -> Bot, enable `SERVER MEMBERS INTENT`.
+- Make sure the bot role in the server has permission to create/invite members.
 
 ### 3. Deploy the new version
 

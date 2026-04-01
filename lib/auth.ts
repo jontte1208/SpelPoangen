@@ -4,6 +4,8 @@ import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
 import type { Tier } from "@/types/user";
 
+const DISCORD_API_BASE = "https://discord.com/api/v10";
+
 function toErrorMeta(error: unknown) {
   if (error instanceof Error) {
     return {
@@ -33,13 +35,56 @@ function getAdminDiscordIds() {
   );
 }
 
+function getDiscordGuildConfig() {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+
+  if (!botToken || !guildId) {
+    return null;
+  }
+
+  return { botToken, guildId };
+}
+
+async function addUserToDiscordGuild(params: {
+  guildId: string;
+  botToken: string;
+  discordUserId: string;
+  userAccessToken: string;
+}) {
+  const { guildId, botToken, discordUserId, userAccessToken } = params;
+
+  const response = await fetch(
+    `${DISCORD_API_BASE}/guilds/${guildId}/members/${discordUserId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bot ${botToken}`,
+      },
+      body: JSON.stringify({
+        access_token: userAccessToken,
+      }),
+    }
+  );
+
+  if (response.ok) {
+    return;
+  }
+
+  const responseText = await response.text();
+  throw new Error(
+    `Discord guild join failed (${response.status}): ${responseText.slice(0, 300)}`
+  );
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
-      authorization: { params: { scope: "identify email" } },
+      authorization: { params: { scope: "identify email guilds.join" } },
     }),
   ],
   session: {
@@ -63,6 +108,8 @@ export const authOptions: NextAuthOptions = {
           : null;
 
       const isAdminDiscordId = discordId ? getAdminDiscordIds().has(discordId) : false;
+      const accessToken =
+        typeof account.access_token === "string" ? account.access_token : null;
 
       try {
         await prisma.user.update({
@@ -79,6 +126,37 @@ export const authOptions: NextAuthOptions = {
           provider: account.provider,
           discordId,
           isAdminDiscordId,
+          error: toErrorMeta(error),
+        });
+      }
+
+      if (!discordId || !accessToken) {
+        return;
+      }
+
+      const guildConfig = getDiscordGuildConfig();
+      if (!guildConfig) {
+        return;
+      }
+
+      try {
+        await addUserToDiscordGuild({
+          guildId: guildConfig.guildId,
+          botToken: guildConfig.botToken,
+          discordUserId: discordId,
+          userAccessToken: accessToken,
+        });
+
+        console.info("[auth.events.signIn] discord auto-join succeeded", {
+          userId: user.id,
+          discordId,
+          guildId: guildConfig.guildId,
+        });
+      } catch (error) {
+        console.error("[auth.events.signIn] discord auto-join failed", {
+          userId: user.id,
+          discordId,
+          guildId: guildConfig.guildId,
           error: toErrorMeta(error),
         });
       }
