@@ -1,4 +1,4 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
