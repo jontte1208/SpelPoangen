@@ -17,6 +17,7 @@ In Vercel project settings, add these variables for Production (and Preview if n
 - DISCORD_CLIENT_SECRET=your-discord-client-secret
 - DISCORD_BOT_TOKEN=your-discord-bot-token
 - DISCORD_GUILD_ID=your-discord-server-id
+- NEXT_PUBLIC_DISCORD_INVITE_URL=https://discord.gg/your-invite-code
 - DISCORD_VIP_ROLE_ID=discord-role-id-for-vip-premium
 - DISCORD_PREMIUM_ROLE_ID=discord-role-id-for-premium-optional-alias
 - DISCORD_ROOKIE_ROLE_ID=discord-role-id-for-rookie
@@ -36,6 +37,7 @@ Note:
 - If both ADMIN_DISCORD_ID and ADMIN_DISCORD_IDS are set, both are accepted.
 - DISCORD_BOT_TOKEN must be from the same Discord application as DISCORD_CLIENT_ID.
 - DISCORD_GUILD_ID is your server ID (example: 1488219784062570579).
+- NEXT_PUBLIC_DISCORD_INVITE_URL is used to redirect users to your server invite after sign-in.
 - DISCORD_VIP_ROLE_ID (or DISCORD_PREMIUM_ROLE_ID) is used when a user is set to PREMIUM in admin.
 - DISCORD_ROOKIE_ROLE_ID, DISCORD_GRINDER_ROLE_ID, DISCORD_LEGEND_ROLE_ID, DISCORD_GOLD_ROLE_ID and DISCORD_FREE_ROLE_ID are optional mappings for tier sync.
 - Use the exact URL formats from Supabase dashboard:
@@ -61,7 +63,7 @@ In Discord Developer Portal for your app:
 
 - Push your latest code to the branch connected to Vercel.
 - Trigger a redeploy (or deploy automatically on push).
-- Build now runs `prisma migrate deploy` automatically so new tier enum values are applied in production.
+- Build does not run database migrations automatically. Run `npm run db:migrate:deploy` from an environment with database access.
 
 ### 4. Verify user persistence in Supabase
 

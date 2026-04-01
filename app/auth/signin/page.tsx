@@ -6,7 +6,8 @@ import { Suspense } from "react";
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl =
+    searchParams.get("callbackUrl") ?? "/discord/invite?next=/dashboard";
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
