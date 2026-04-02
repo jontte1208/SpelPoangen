@@ -78,14 +78,14 @@ export async function updateStreak(
     const msSinceLast = now.getTime() - user.lastLogin.getTime();
     const hoursSinceLast = msSinceLast / (1000 * 60 * 60);
 
-    if (hoursSinceLast < 24) {
+    if (hoursSinceLast < 20) {
       // Already logged in today — no change
       return { streak, wasReset: false };
-    } else if (hoursSinceLast <= 48) {
-      // Logged in yesterday — keep streak going
+    } else if (hoursSinceLast <= 28) {
+      // Logged in within the next-day window — keep streak going
       streak += 1;
     } else {
-      // Gap of more than 48 h — reset
+      // More than 28 h without login — reset
       streak = 1;
       wasReset = true;
     }
