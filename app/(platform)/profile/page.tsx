@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { xpForLevel } from "@/lib/utils";
-import { Zap, Coins, Flame, Medal, ShoppingBag, CheckCircle2 } from "lucide-react";
+import { Zap, Coins, Flame, Medal, ShoppingBag, CheckCircle2, MessageSquare, Star } from "lucide-react";
 
 export const metadata = { title: "Min profil" };
 
@@ -172,6 +172,39 @@ export default async function ProfilePage() {
             <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
               {user.tier} · LVL {user.level} · {Math.round(progress * 100)}% till nästa nivå
             </p>
+
+            {/* Badges */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {/* Verifierad */}
+              <div className="group relative">
+                <div className="flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-violet-500/30 bg-white/5 text-violet-400 transition-all duration-200 hover:border-violet-400/60 hover:bg-violet-500/15 hover:shadow-[0_0_10px_rgba(167,139,250,0.35)]">
+                  <MessageSquare size={14} />
+                </div>
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-slate-900/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white opacity-0 shadow-xl backdrop-blur-sm transition-opacity duration-150 group-hover:opacity-100">
+                  Verifierad
+                </span>
+              </div>
+
+              {/* Beta-testare */}
+              <div className="group relative">
+                <div className="flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-yellow-400/30 bg-white/5 text-yellow-400 transition-all duration-200 hover:border-yellow-400/60 hover:bg-yellow-400/15 hover:shadow-[0_0_10px_rgba(250,204,21,0.35)]">
+                  <Star size={14} />
+                </div>
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-slate-900/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white opacity-0 shadow-xl backdrop-blur-sm transition-opacity duration-150 group-hover:opacity-100">
+                  Beta-testare
+                </span>
+              </div>
+
+              {/* Första köpet */}
+              <div className="group relative">
+                <div className="flex h-8 w-8 cursor-default items-center justify-center rounded-full border border-emerald-500/30 bg-white/5 text-emerald-400 transition-all duration-200 hover:border-emerald-400/60 hover:bg-emerald-500/15 hover:shadow-[0_0_10px_rgba(52,211,153,0.35)]">
+                  <CheckCircle2 size={14} />
+                </div>
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-slate-900/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white opacity-0 shadow-xl backdrop-blur-sm transition-opacity duration-150 group-hover:opacity-100">
+                  Första köpet
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
