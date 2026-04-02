@@ -6,7 +6,8 @@ import LootMarketSection from "@/components/market/LootMarketSection";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/types/user";
-import { Zap, ShoppingCart, Trophy, BadgeCheck, Flame } from "lucide-react";
+import { Zap, ShoppingCart, Trophy, BadgeCheck, Flame, Crown, Medal } from "lucide-react";
+import Link from "next/link";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -173,21 +174,34 @@ export default function DashboardShell({ user }: DashboardShellProps) {
           <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft">
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.38em] text-neon-cyan/70">Topplista</p>
             <div className="space-y-2">
-              {[
-                ["01", user.name ?? "Du", `${user.xp} XP`, true],
-                ["02", "ShadowLoot", "1280 XP", false],
-                ["03", "NovaAim", "1145 XP", false],
-              ].map(([rank, name, xp, current]) => (
+              {(
+                [
+                  ["01", user.name ?? "Du", `${user.xp} XP`, true],
+                  ["02", "ShadowLoot", "1280 XP", false],
+                  ["03", "NovaAim", "1145 XP", false],
+                ] as const
+              ).map(([rank, name, xp, current], i) => (
                 <div
                   key={String(rank)}
                   className={cn(
-                    "rounded-2xl border bg-slate-900/40 p-5",
-                    current ? "border-neon-cyan/25" : "border-white/5"
+                    "rounded-2xl border p-4 transition-colors",
+                    i === 0 && "border-yellow-400/20 bg-yellow-400/5 shadow-[0_0_14px_rgba(250,204,21,0.08)]",
+                    i === 1 && "border-white/10 bg-slate-900/40",
+                    i === 2 && "border-white/10 bg-slate-900/40",
+                    current && i !== 0 && "border-neon-cyan/25",
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-display text-base text-neon-cyan">{rank}</span>
+                    <div className="flex items-center gap-2.5">
+                      {i === 0 && <Crown size={13} className="shrink-0 text-yellow-400" />}
+                      {i === 1 && <Medal size={13} className="shrink-0 text-slate-300" />}
+                      {i === 2 && <Medal size={13} className="shrink-0 text-amber-600" />}
+                      <span className={cn(
+                        "font-display text-base",
+                        i === 0 && "text-yellow-400",
+                        i === 1 && "text-slate-300",
+                        i === 2 && "text-amber-600",
+                      )}>{rank}</span>
                       <span className="text-sm text-slate-200">{name}</span>
                     </div>
                     <span className="text-xs font-semibold text-white">{xp}</span>
@@ -195,6 +209,12 @@ export default function DashboardShell({ user }: DashboardShellProps) {
                 </div>
               ))}
             </div>
+            <Link
+              href="/leaderboard"
+              className="mt-3 flex w-full items-center justify-center rounded-xl border border-white/8 bg-white/[0.03] py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              Visa alla
+            </Link>
           </div>
         </motion.aside>
 

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { SectionIntro } from "@/components/dashboard/SectionIntro";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Crown, Medal } from "lucide-react";
 
 export const metadata = { title: "Topplista" };
 
@@ -34,17 +34,29 @@ export default async function LeaderboardPage() {
       />
 
       <div className="space-y-4">
-        {entries.map(({ rank, name, xp, isAdmin }) => {
+        {entries.map(({ rank, name, xp, isAdmin }, i) => {
           const isCurrentUser = name === currentUserName;
           const showBadge = isAdmin || (currentUserIsAdmin && isCurrentUser);
+
+          const rankStyles = [
+            { card: "border-yellow-400/20 bg-yellow-400/5 shadow-[0_0_20px_rgba(250,204,21,0.1)]", num: "text-yellow-400" },
+            { card: "border-slate-400/15 bg-slate-900/60", num: "text-slate-300" },
+            { card: "border-amber-700/20 bg-slate-900/60", num: "text-amber-600" },
+          ][i] ?? { card: "bg-slate-950/70", num: "text-neon-cyan" };
+
           return (
             <Card
               key={rank}
-              className="rounded-3xl bg-slate-950/70 p-5 transition-colors duration-150 hover:bg-white/5"
+              className={`rounded-3xl border p-5 transition-colors duration-150 hover:bg-white/5 ${rankStyles.card}`}
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <span className="font-display text-2xl text-neon-cyan">{rank}</span>
+                  <div className="flex items-center gap-2">
+                    {i === 0 && <Crown size={16} className="text-yellow-400" />}
+                    {i === 1 && <Medal size={16} className="text-slate-300" />}
+                    {i === 2 && <Medal size={16} className="text-amber-600" />}
+                    <span className={`font-display text-2xl ${rankStyles.num}`}>{rank}</span>
+                  </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-white">{name}</p>
