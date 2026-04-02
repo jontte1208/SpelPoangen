@@ -190,15 +190,18 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
               } ${index === 0 ? "sm:col-span-2 xl:col-span-2" : ""}`}
             >
               {/* Image + countdown overlay */}
-              <div className="relative">
+              <div className="relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={product.image}
                   alt={product.name}
-                  className={`w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] ${
+                  className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                     isDailyDeal ? "h-56" : "h-44"
                   }`}
                 />
+
+                {/* Hover glow overlay */}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.18)_0%,transparent_70%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
                 {isDailyDeal && (
                   <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-xl border border-red-400/30 bg-black/70 px-3 py-1.5 backdrop-blur-sm">
@@ -224,10 +227,10 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
                 <h3 className="font-display text-xl font-semibold text-white">{product.name}</h3>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-neon-cyan/25 bg-neon-cyan/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-neon-cyan">
+                  <span className="rounded-full border border-neon-cyan/40 bg-neon-cyan/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.2)] backdrop-blur-md">
                     +{product.xpReward} XP
                   </span>
-                  <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                  <span className="rounded-full border border-cyan-300/40 bg-cyan-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200 shadow-[0_0_8px_rgba(56,189,248,0.2)] backdrop-blur-md">
                     +{product.coinReward} Coins
                   </span>
                 </div>
