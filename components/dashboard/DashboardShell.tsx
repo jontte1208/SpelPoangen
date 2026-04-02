@@ -145,10 +145,6 @@ export default function DashboardShell({ user }: DashboardShellProps) {
           <LootMarketSection inDashboard />
         </motion.section>
 
-        <motion.section variants={itemVariants} className="col-span-12">
-          <RecentActivity />
-        </motion.section>
-
         <motion.aside variants={itemVariants} className="col-span-12 space-y-5 xl:col-span-3">
           <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft">
             <div className="mb-4 flex items-center justify-between">
@@ -201,6 +197,10 @@ export default function DashboardShell({ user }: DashboardShellProps) {
             </div>
           </div>
         </motion.aside>
+
+        <motion.section variants={itemVariants} className="col-span-12">
+          <RecentActivity />
+        </motion.section>
 
       </div>
     </motion.main>
