@@ -6,6 +6,7 @@ import LootMarketSection from "@/components/market/LootMarketSection";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/types/user";
+import { Zap, ShoppingCart, Trophy, BadgeCheck, Flame } from "lucide-react";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -26,6 +27,66 @@ const itemVariants: Variants = {
     transition: { duration: 0.45, ease: "easeOut" },
   },
 };
+
+const activityFeed = [
+  { icon: BadgeCheck, color: "text-violet-400", bg: "bg-violet-400/10 border-violet-400/20", text: "jontte0067 låste precis upp en ny badge!", time: "Nu" },
+  { icon: ShoppingCart, color: "text-amber-300", bg: "bg-amber-400/10 border-amber-300/20", text: "NovaAim köpte SteelSeries Apex Pro", time: "1 min" },
+  { icon: Trophy, color: "text-neon-cyan", bg: "bg-neon-cyan/10 border-neon-cyan/20", text: "ShadowLoot nådde Level 5!", time: "3 min" },
+  { icon: Zap, color: "text-yellow-400", bg: "bg-yellow-400/10 border-yellow-400/20", text: "UserX tjänade 250 XP på Razer DeathAdder V3", time: "5 min" },
+  { icon: Flame, color: "text-orange-400", bg: "bg-orange-400/10 border-orange-400/20", text: "GrindKing håller en 7-dagars streak!", time: "8 min" },
+  { icon: ShoppingCart, color: "text-amber-300", bg: "bg-amber-400/10 border-amber-300/20", text: "ProGamer99 köpte HyperX Cloud III", time: "12 min" },
+];
+
+const feedItemVariants: Variants = {
+  hidden: { opacity: 0, x: -16 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.35, ease: "easeOut", delay: i * 0.07 },
+  }),
+};
+
+function RecentActivity() {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 backdrop-blur-md">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-neon-cyan/70">
+          Senaste Aktivitet
+        </p>
+        <span className="flex items-center gap-1.5">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          </span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-400">Live</span>
+        </span>
+      </div>
+
+      <motion.ul
+        initial="hidden"
+        animate="visible"
+        className="space-y-2"
+      >
+        {activityFeed.map((item, i) => (
+          <motion.li
+            key={i}
+            custom={i}
+            variants={feedItemVariants}
+            className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm"
+          >
+            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${item.bg}`}>
+              <item.icon size={13} className={item.color} />
+            </div>
+            <p className="min-w-0 flex-1 truncate text-sm text-slate-300">{item.text}</p>
+            <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-slate-600">
+              {item.time}
+            </span>
+          </motion.li>
+        ))}
+      </motion.ul>
+    </div>
+  );
+}
 
 type DashboardShellProps = {
   user: {
@@ -82,6 +143,10 @@ export default function DashboardShell({ user }: DashboardShellProps) {
 
         <motion.section variants={itemVariants} className="col-span-12 xl:col-span-9">
           <LootMarketSection inDashboard />
+        </motion.section>
+
+        <motion.section variants={itemVariants} className="col-span-12">
+          <RecentActivity />
         </motion.section>
 
         <motion.aside variants={itemVariants} className="col-span-12 space-y-5 xl:col-span-3">
