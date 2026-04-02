@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { SectionIntro } from "@/components/dashboard/SectionIntro";
+import { TrendingUp } from "lucide-react";
 
 export const metadata = { title: "Topplista" };
 
@@ -21,6 +22,7 @@ const entries = [
 
 export default async function LeaderboardPage() {
   const session = await getServerSession(authOptions);
+  const currentUserName = session?.user?.name;
   const currentUserIsAdmin = session?.user?.role === "ADMIN";
 
   return (
@@ -33,9 +35,13 @@ export default async function LeaderboardPage() {
 
       <div className="space-y-4">
         {entries.map(({ rank, name, xp, isAdmin }) => {
-          const showBadge = isAdmin || (currentUserIsAdmin && name === session?.user?.name);
+          const isCurrentUser = name === currentUserName;
+          const showBadge = isAdmin || (currentUserIsAdmin && isCurrentUser);
           return (
-            <Card key={rank} className="rounded-3xl bg-slate-950/70 p-5">
+            <Card
+              key={rank}
+              className="rounded-3xl bg-slate-950/70 p-5 transition-colors duration-150 hover:bg-white/5"
+            >
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <span className="font-display text-2xl text-neon-cyan">{rank}</span>
@@ -43,11 +49,20 @@ export default async function LeaderboardPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-white">{name}</p>
                       {showBadge && <OwnerBadge />}
+                      {isCurrentUser && (
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-slate-400">Weekly leaderboard preview</p>
                   </div>
                 </div>
-                <span className="font-mono text-sm text-white">{xp}</span>
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp size={13} className="text-emerald-400" />
+                  <span className="font-mono text-sm text-white">{xp}</span>
+                </div>
               </div>
             </Card>
           );
