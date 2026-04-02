@@ -23,7 +23,7 @@ export default async function ProfilePage() {
       level: true,
       tier: true,
       affiliateCode: true,
-      userQuests: {
+      quests: {
         orderBy: { completedAt: "desc" },
         take: 5,
         include: { quest: { select: { title: true, rewardXP: true, rewardCoins: true } } },
@@ -63,7 +63,7 @@ export default async function ProfilePage() {
     | { kind: "order"; name: string; coinsSpent: number; date: Date };
 
   const activity: ActivityItem[] = [
-    ...(dbUser?.userQuests ?? []).map((uq) => ({
+    ...(dbUser?.quests ?? []).map((uq) => ({
       kind: "quest" as const,
       title: uq.quest.title,
       rewardXP: uq.quest.rewardXP,
