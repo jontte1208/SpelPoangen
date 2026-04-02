@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { xpForLevel } from "@/lib/utils";
+import { Zap, Coins, Flame, Medal, ShoppingBag, CheckCircle2 } from "lucide-react";
 
 export const metadata = { title: "Min profil" };
 
@@ -21,6 +23,16 @@ export default async function ProfilePage() {
       level: true,
       tier: true,
       affiliateCode: true,
+      userQuests: {
+        orderBy: { completedAt: "desc" },
+        take: 5,
+        include: { quest: { select: { title: true, rewardXP: true, rewardCoins: true } } },
+      },
+      orders: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { shopItem: { select: { name: true, coinCost: true } } },
+      },
     },
   });
 
@@ -34,57 +46,219 @@ export default async function ProfilePage() {
     affiliateCode: dbUser?.affiliateCode ?? session.user.affiliateCode,
   };
 
+  // Progress ring
+  const currentThreshold = xpForLevel(user.level);
+  const nextThreshold = xpForLevel(user.level + 1);
+  const levelRange = Math.max(nextThreshold - currentThreshold, 1);
+  const currentLevelXP = Math.max(user.xp - currentThreshold, 0);
+  const progress = Math.min(Math.max(currentLevelXP / levelRange, 0), 1);
+
+  const ringRadius = 54;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringOffset = ringCircumference * (1 - progress);
+
+  // Merge and sort activity
+  type ActivityItem =
+    | { kind: "quest"; title: string; rewardXP: number; rewardCoins: number; date: Date }
+    | { kind: "order"; name: string; coinsSpent: number; date: Date };
+
+  const activity: ActivityItem[] = [
+    ...(dbUser?.userQuests ?? []).map((uq) => ({
+      kind: "quest" as const,
+      title: uq.quest.title,
+      rewardXP: uq.quest.rewardXP,
+      rewardCoins: uq.quest.rewardCoins,
+      date: uq.completedAt,
+    })),
+    ...(dbUser?.orders ?? []).map((o) => ({
+      kind: "order" as const,
+      name: o.shopItem.name,
+      coinsSpent: o.coinsSpent,
+      date: o.createdAt,
+    })),
+  ]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 6);
+
+  const initials = (user.name ?? "SP")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+
   return (
     <main className="grid gap-6">
-      <section className="glass-panel rounded-[1.75rem] bg-slate-900/40 p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-neon-cyan/70">
-          Min profil
-        </p>
-        <h1 className="mt-3 font-display text-3xl font-semibold text-white sm:text-4xl">
-          {user.name ?? "Gamer"}
-        </h1>
-        <p className="mt-2 text-sm text-slate-400">Din personliga profil och progression.</p>
+
+      {/* Banner + identity */}
+      <section className="glass-panel overflow-hidden rounded-[1.75rem] bg-slate-900/40">
+        {/* Banner */}
+        <div className="relative h-36 w-full bg-[linear-gradient(135deg,#0d1f3c_0%,#051120_40%,#0a2a1f_70%,#010b17_100%)]">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_50%,rgba(0,245,255,0.12)_0%,transparent_70%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_80%,rgba(56,189,248,0.08)_0%,transparent_60%)]" />
+          {/* subtle grid lines */}
+          <div className="absolute inset-0 opacity-[0.04]"
+            style={{ backgroundImage: "linear-gradient(rgba(0,245,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,1) 1px,transparent 1px)", backgroundSize: "40px 40px" }}
+          />
+        </div>
+
+        {/* Avatar row */}
+        <div className="flex flex-col gap-3 px-6 pb-6 sm:flex-row sm:items-end">
+          {/* Avatar with progress ring — pulled up into banner */}
+          <div className="-mt-14 shrink-0">
+            <svg width="120" height="120" viewBox="0 0 120 120" className="drop-shadow-lg">
+              {/* Background track */}
+              <circle
+                cx="60" cy="60" r={ringRadius}
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="5"
+              />
+              {/* Progress arc */}
+              <circle
+                cx="60" cy="60" r={ringRadius}
+                fill="none"
+                stroke="url(#ringGrad)"
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeDasharray={ringCircumference}
+                strokeDashoffset={ringOffset}
+                transform="rotate(-90 60 60)"
+              />
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#00f5ff" />
+                  <stop offset="100%" stopColor="#2563eb" />
+                </linearGradient>
+              </defs>
+              {/* Clip mask for avatar */}
+              <defs>
+                <clipPath id="avatarClip">
+                  <circle cx="60" cy="60" r="50" />
+                </clipPath>
+              </defs>
+              {user.image ? (
+                <image
+                  href={user.image}
+                  x="10" y="10"
+                  width="100" height="100"
+                  clipPath="url(#avatarClip)"
+                  preserveAspectRatio="xMidYMid slice"
+                />
+              ) : (
+                <>
+                  <circle cx="60" cy="60" r="50" fill="rgba(0,245,255,0.08)" clipPath="url(#avatarClip)" />
+                  <text x="60" y="67" textAnchor="middle" fill="#00f5ff" fontSize="26" fontWeight="700" fontFamily="monospace">
+                    {initials}
+                  </text>
+                </>
+              )}
+              {/* Level badge */}
+              <circle cx="96" cy="96" r="14" fill="#010b17" stroke="#00f5ff" strokeWidth="1.5" />
+              <text x="96" y="100" textAnchor="middle" fill="#00f5ff" fontSize="10" fontWeight="700" fontFamily="monospace">
+                {user.level}
+              </text>
+            </svg>
+          </div>
+
+          {/* Name + tier */}
+          <div className="mb-1 min-w-0 sm:pb-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.38em] text-neon-cyan/60">
+              Min profil
+            </p>
+            <h1 className="mt-1 font-display text-2xl font-semibold text-white sm:text-3xl">
+              {user.name ?? "Gamer"}
+            </h1>
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
+              {user.tier} · LVL {user.level} · {Math.round(progress * 100)}% till nästa nivå
+            </p>
+          </div>
+        </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <article className="glass-panel rounded-[1.5rem] bg-slate-900/40 p-6 lg:col-span-1">
-          {user.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.image}
-              alt={user.name ?? "Profilbild"}
-              className="h-28 w-28 rounded-2xl border border-neon-cyan/30 object-cover"
-            />
-          ) : (
-            <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-neon-cyan/30 bg-neon-cyan/10 font-display text-2xl text-neon-cyan">
-              {(user.name ?? "SP").slice(0, 2).toUpperCase()}
-            </div>
-          )}
-          <p className="mt-4 text-xs uppercase tracking-[0.22em] text-slate-500">Nivå</p>
-          <p className="mt-1 font-display text-2xl text-white">{user.level}</p>
-        </article>
-
-        <article className="glass-panel rounded-[1.5rem] bg-slate-900/40 p-6 lg:col-span-2">
-          <h2 className="font-display text-2xl font-semibold text-white">Statistik</h2>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-neon-cyan/20 bg-neon-cyan/5 p-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">XP</p>
-              <p className="mt-2 font-display text-2xl text-neon-cyan">{user.xp}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Tier</p>
-              <p className="mt-2 font-display text-2xl text-white">{user.tier}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Coins</p>
-              <p className="mt-2 font-display text-2xl text-white">{user.coins}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Streak</p>
-              <p className="mt-2 font-display text-2xl text-white">{user.streak}</p>
-            </div>
+      {/* Stat cards */}
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="glass-panel rounded-[1.5rem] bg-slate-900/40 p-5">
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-neon-cyan/25 bg-neon-cyan/10">
+            <Zap size={16} className="text-neon-cyan" />
           </div>
-        </article>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">XP</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-neon-cyan">{user.xp.toLocaleString("sv-SE")}</p>
+        </div>
+
+        <div className="glass-panel rounded-[1.5rem] bg-slate-900/40 p-5">
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-400/10">
+            <Coins size={16} className="text-amber-300" />
+          </div>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Coins</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-amber-200">{user.coins.toLocaleString("sv-SE")}</p>
+        </div>
+
+        <div className="glass-panel rounded-[1.5rem] bg-slate-900/40 p-5">
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-orange-400/25 bg-orange-400/10">
+            <Flame size={16} className="text-orange-400" />
+          </div>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Streak</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-orange-300">{user.streak}</p>
+        </div>
+
+        <div className="glass-panel rounded-[1.5rem] bg-slate-900/40 p-5">
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-400/10">
+            <Medal size={16} className="text-violet-400" />
+          </div>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Tier</p>
+          <p className="mt-1 font-display text-xl font-semibold text-violet-300">{user.tier}</p>
+        </div>
+      </section>
+
+      {/* Recent activity */}
+      <section className="glass-panel rounded-[1.75rem] bg-slate-900/40 p-6">
+        <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-slate-400">
+          Senaste Aktivitet
+        </h2>
+
+        {activity.length === 0 ? (
+          <p className="text-sm text-slate-500">Ingen aktivitet ännu.</p>
+        ) : (
+          <ul className="space-y-2">
+            {activity.map((item, i) => (
+              <li
+                key={i}
+                className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3"
+              >
+                {/* Icon */}
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
+                  item.kind === "quest"
+                    ? "border-neon-cyan/20 bg-neon-cyan/10"
+                    : "border-amber-300/20 bg-amber-400/10"
+                }`}>
+                  {item.kind === "quest"
+                    ? <CheckCircle2 size={15} className="text-neon-cyan" />
+                    : <ShoppingBag size={15} className="text-amber-300" />
+                  }
+                </div>
+
+                {/* Text */}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">
+                    {item.kind === "quest" ? item.title : item.name}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                    {item.kind === "quest"
+                      ? `Quest · +${item.rewardXP} XP${item.rewardCoins ? ` · +${item.rewardCoins} coins` : ""}`
+                      : `Köp · ${item.coinsSpent} coins`
+                    }
+                  </p>
+                </div>
+
+                {/* Date */}
+                <time className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-slate-600">
+                  {item.date.toLocaleDateString("sv-SE")}
+                </time>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
     </main>
