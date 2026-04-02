@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
+import { updateStreak } from "@/lib/gamification";
 import type { Tier } from "@/types/user";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -144,7 +145,6 @@ export const authOptions: NextAuthOptions = {
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            lastLogin: new Date(),
             ...(discordId ? { discordId } : {}),
             ...(isAdminDiscordId ? { role: "ADMIN" } : {}),
           },
@@ -155,6 +155,15 @@ export const authOptions: NextAuthOptions = {
           provider: account.provider,
           discordId,
           isAdminDiscordId,
+          error: toErrorMeta(error),
+        });
+      }
+
+      try {
+        await updateStreak(user.id);
+      } catch (error) {
+        console.error("[auth.events.signIn] streak update failed", {
+          userId: user.id,
           error: toErrorMeta(error),
         });
       }
