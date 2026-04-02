@@ -17,7 +17,9 @@ import {
   Activity,
   Coins,
   Star,
+  ArrowLeft,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type AdminUser = {
@@ -80,6 +82,7 @@ function StatCard({
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -282,6 +285,12 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="sticky top-0 z-40 mb-8 border-b border-white/5 bg-[#010b17]/80 py-5 backdrop-blur-md">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 transition-all hover:border-neon-cyan/30 hover:text-white"
+            >
+              <ArrowLeft size={16} />
+            </button>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-neon-cyan/30 bg-neon-cyan/10">
               <Shield size={18} className="text-neon-cyan" />
             </div>
