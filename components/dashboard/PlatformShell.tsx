@@ -1,12 +1,12 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
+import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { cn } from "@/lib/utils";
+import { cn, xpForLevel } from "@/lib/utils";
 import { TIER_COLORS, TIER_LABELS } from "@/types/user";
 import type { Tier } from "@/types/user";
 
@@ -60,6 +60,11 @@ function OwnerBadge() {
 export default function PlatformShell({ user, children }: PlatformShellProps) {
   const pathname = usePathname();
   const isAdmin = user.role === "ADMIN";
+  const currentThreshold = xpForLevel(user.level);
+  const nextThreshold = xpForLevel(user.level + 1);
+  const levelRange = Math.max(nextThreshold - currentThreshold, 1);
+  const currentLevelXP = Math.max(user.xp - currentThreshold, 0);
+  const progress = Math.min(Math.max((currentLevelXP / levelRange) * 100, 0), 100);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -219,6 +224,35 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
               );
             })}
           </nav>
+
+          <div className="mt-3 space-y-2 border-t border-white/5 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-400/5 px-2.5 py-1.5">
+                <Coins size={14} className="text-cyan-200" />
+                <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Coins</span>
+                <span className="text-xs font-semibold text-white">{user.coins}</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-amber-300/20 bg-amber-400/10 px-2.5 py-1.5">
+                <Gem size={14} className="text-amber-300" />
+                <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/70">Gold</span>
+                <span className="text-xs font-semibold text-amber-200">{user.gold}</span>
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                XP {currentLevelXP}/{levelRange}
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-neon-cyan/15 bg-slate-950/70 p-2">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-900">
+                <motion.div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#00f5ff_0%,#38bdf8_50%,#2563eb_100%)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+          </div>
 
         </header>
 
