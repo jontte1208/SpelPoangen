@@ -1,12 +1,12 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { cn, xpForLevel } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { TIER_COLORS, TIER_LABELS } from "@/types/user";
 import type { Tier } from "@/types/user";
 
@@ -59,11 +59,6 @@ function OwnerBadge() {
 
 export default function PlatformShell({ user, children }: PlatformShellProps) {
   const pathname = usePathname();
-  const currentThreshold = xpForLevel(user.level);
-  const nextThreshold = xpForLevel(user.level + 1);
-  const levelRange = Math.max(nextThreshold - currentThreshold, 1);
-  const currentLevelXP = Math.max(user.xp - currentThreshold, 0);
-  const progress = Math.min(Math.max((currentLevelXP / levelRange) * 100, 0), 100);
   const isAdmin = user.role === "ADMIN";
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
