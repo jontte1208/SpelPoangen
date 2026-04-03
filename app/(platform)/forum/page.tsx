@@ -17,7 +17,7 @@ export default async function ForumPage() {
         title="Hitta spelare att spela med"
         description="Lägg upp ett inlägg om du letar efter duos, ett team eller bara vill spela med nya folk."
       />
-      <ForumFeed currentUserId={session.user.id} />
+      <ForumFeed currentUserId={session.user.id} isAdmin={session.user.role === "ADMIN"} />
     </main>
   );
 }

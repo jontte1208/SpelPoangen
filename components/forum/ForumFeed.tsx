@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin } from "lucide-react";
+import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2 } from "lucide-react";
 
 type Author = { id: string; name: string | null; xp: number; level: number; image: string | null; role: string };
 type Post = { id: string; title: string; content: string; game: string | null; pinned: boolean; createdAt: string; author: Author };
@@ -40,10 +40,41 @@ function AuthorAvatar({ author, pinned }: { author: Author; pinned: boolean }) {
   );
 }
 
-function PostCard({ post, currentUserId }: { post: Post; currentUserId: string }) {
+function PostCard({
+  post,
+  currentUserId,
+  isAdmin,
+  onPin,
+  onDelete,
+}: {
+  post: Post;
+  currentUserId: string;
+  isAdmin: boolean;
+  onPin: (id: string, pinned: boolean) => void;
+  onDelete: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const isLong = post.content.length > 200;
   const isPinned = post.pinned;
+
+  async function handlePin() {
+    setActionLoading(true);
+    await fetch(`/api/forum/${post.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: !isPinned }),
+    });
+    onPin(post.id, !isPinned);
+    setActionLoading(false);
+  }
+
+  async function handleDelete() {
+    if (!confirm("Radera det här inlägget?")) return;
+    setActionLoading(true);
+    await fetch(`/api/forum/${post.id}`, { method: "DELETE" });
+    onDelete(post.id);
+  }
 
   return (
     <div
@@ -54,7 +85,7 @@ function PostCard({ post, currentUserId }: { post: Post; currentUserId: string }
           : "border-white/8 bg-slate-900/50 hover:bg-slate-900/70"
       )}
     >
-      {/* Pinned header row */}
+      {/* Pinned header */}
       {isPinned && (
         <div className="flex items-center gap-2 mb-3">
           <Pin size={11} className="text-amber-400" />
@@ -84,9 +115,38 @@ function PostCard({ post, currentUserId }: { post: Post; currentUserId: string }
             {post.title}
           </h3>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0 text-slate-500 text-xs">
-          <Clock size={11} />
-          {timeAgo(post.createdAt)}
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Admin controls */}
+          {isAdmin && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handlePin}
+                disabled={actionLoading}
+                title={isPinned ? "Avfäst" : "Fäst överst"}
+                className={cn(
+                  "rounded-lg border p-1.5 transition-colors disabled:opacity-40",
+                  isPinned
+                    ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                    : "border-white/10 text-slate-500 hover:border-amber-500/30 hover:text-amber-400"
+                )}
+              >
+                {isPinned ? <PinOff size={13} /> : <Pin size={13} />}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={actionLoading}
+                title="Radera inlägg"
+                className="rounded-lg border border-white/10 p-1.5 text-slate-500 transition-colors hover:border-red-500/30 hover:text-red-400 disabled:opacity-40"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 text-slate-500 text-xs">
+            <Clock size={11} />
+            {timeAgo(post.createdAt)}
+          </div>
         </div>
       </div>
 
@@ -118,7 +178,7 @@ function PostCard({ post, currentUserId }: { post: Post; currentUserId: string }
   );
 }
 
-export default function ForumFeed({ currentUserId }: { currentUserId: string }) {
+export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -135,6 +195,17 @@ export default function ForumFeed({ currentUserId }: { currentUserId: string }) 
       .then((data) => { if (Array.isArray(data)) setPosts(data); })
       .finally(() => setLoading(false));
   }, []);
+
+  function handlePin(id: string, pinned: boolean) {
+    setPosts((prev) => {
+      const updated = prev.map((p) => p.id === id ? { ...p, pinned } : p);
+      return [...updated.filter((p) => p.pinned), ...updated.filter((p) => !p.pinned)];
+    });
+  }
+
+  function handleDelete(id: string) {
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -236,7 +307,14 @@ export default function ForumFeed({ currentUserId }: { currentUserId: string }) 
         </div>
       ) : (
         posts.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={currentUserId} />
+          <PostCard
+            key={post.id}
+            post={post}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            onPin={handlePin}
+            onDelete={handleDelete}
+          />
         ))
       )}
     </div>
