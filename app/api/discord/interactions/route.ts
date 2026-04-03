@@ -6,41 +6,31 @@
 // Run `npx tsx scripts/register-discord-commands.ts` once to register commands.
 
 import { NextRequest, NextResponse } from "next/server";
+import { createPublicKey, verify as cryptoVerify } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { levelProgress } from "@/lib/gamification";
 import { getActiveQuests, getWeekIndex } from "@/lib/weekly-quests";
 
-// ─── Signature verification (Ed25519) ─────────────────────────────────────────
+// ─── Signature verification (Ed25519 via Node crypto) ─────────────────────────
+// Discord signs requests with Ed25519. We reconstruct the public key in SPKI/DER
+// format (12-byte ASN.1 header + 32 raw key bytes) so Node's built-in crypto can
+// verify without any extra packages.
 
-function hexToUint8(hex: string): Uint8Array<ArrayBuffer> {
-  const buf = new ArrayBuffer(hex.length / 2);
-  const bytes = new Uint8Array(buf);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
+const ED25519_DER_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
 
-async function verifySignature(
+function verifySignature(
   publicKeyHex: string,
   signature: string,
   timestamp: string,
   body: string
-): Promise<boolean> {
+): boolean {
   try {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      hexToUint8(publicKeyHex),
-      { name: "Ed25519" },
-      false,
-      ["verify"]
-    );
-    return await crypto.subtle.verify(
-      "Ed25519",
-      key,
-      hexToUint8(signature),
-      new TextEncoder().encode(timestamp + body)
-    );
+    const rawKey = Buffer.from(publicKeyHex, "hex");
+    const derKey = Buffer.concat([ED25519_DER_PREFIX, rawKey]);
+    const publicKey = createPublicKey({ key: derKey, format: "der", type: "spki" });
+    const message = Buffer.from(timestamp + body);
+    const sig = Buffer.from(signature, "hex");
+    return cryptoVerify(null, message, publicKey, sig);
   } catch {
     return false;
   }
@@ -196,7 +186,7 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get("x-signature-ed25519") ?? "";
   const timestamp = request.headers.get("x-signature-timestamp") ?? "";
 
-  const valid = await verifySignature(publicKey, signature, timestamp, body);
+  const valid = verifySignature(publicKey, signature, timestamp, body);
   if (!valid) {
     return new NextResponse("Invalid request signature", { status: 401 });
   }
