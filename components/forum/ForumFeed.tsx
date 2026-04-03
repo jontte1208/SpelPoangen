@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2 } from "lucide-react";
+import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2, MessageCircle, Flame, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Author = { id: string; name: string | null; xp: number; level: number; image: string | null; role: string };
@@ -82,11 +82,19 @@ function PostCard({
     onDelete(post.id);
   }
 
+  // Accent line color: amber for pinned, neon-cyan for game posts, subtle for rest
+  const accentColor = isPinned
+    ? "border-l-amber-500/60"
+    : post.game
+    ? "border-l-neon-cyan/40"
+    : "border-l-white/10";
+
   return (
     <div
       onClick={() => router.push(`/forum/${post.id}`)}
       className={cn(
-        "rounded-2xl border p-5 transition-colors cursor-pointer",
+        "group relative rounded-2xl border border-l-4 p-5 transition-colors cursor-pointer",
+        accentColor,
         isPinned
           ? "border-amber-500/50 bg-amber-950/20 shadow-[0_0_28px_rgba(245,158,11,0.12)] hover:bg-amber-950/30"
           : "border-white/8 bg-slate-900/50 hover:bg-slate-900/70"
@@ -111,9 +119,12 @@ function PostCard({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* Admin controls — stop propagation so clicks don't navigate */}
+          {/* Admin controls — only visible on hover */}
           {isAdmin && (
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 onClick={handlePin}
                 disabled={actionLoading}
@@ -156,21 +167,24 @@ function PostCard({
       )}
 
       {/* Game tag */}
-      <div className="flex flex-wrap items-center gap-2 mb-1">
-        {post.game && (
+      {post.game && (
+        <div className="mb-1.5">
           <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
             <Gamepad2 size={10} />
             {post.game}
           </span>
-        )}
-      </div>
-      <h3 className={cn("font-semibold leading-snug", isPinned ? "text-amber-50" : "text-white")}>
+        </div>
+      )}
+
+      {/* Title */}
+      <h3 className={cn("text-lg font-bold leading-snug", isPinned ? "text-amber-50" : "text-white")}>
         {post.title}
       </h3>
 
+      {/* Body */}
       <p className={cn(
-        "mt-2 text-sm whitespace-pre-wrap",
-        isPinned ? "text-amber-100/70" : "text-slate-300",
+        "mt-1.5 text-sm leading-relaxed",
+        isPinned ? "text-amber-100/60" : "text-slate-400",
         !expanded && isLong && "line-clamp-3"
       )}>
         {post.content}
@@ -183,6 +197,25 @@ function PostCard({
           {expanded ? <><ChevronUp size={12} /> Visa mindre</> : <><ChevronDown size={12} /> Visa mer</>}
         </button>
       )}
+
+      {/* Interaction row */}
+      <div
+        className={cn("mt-3 flex items-center gap-4 border-t pt-3", isPinned ? "border-amber-500/15" : "border-white/5")}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="flex items-center gap-1.5 text-slate-500 hover:text-neon-cyan transition-colors text-xs">
+          <MessageCircle size={13} />
+          <span>12 svar</span>
+        </button>
+        <button className="flex items-center gap-1.5 text-slate-500 hover:text-orange-400 transition-colors text-xs">
+          <Flame size={13} />
+          <span>34</span>
+        </button>
+        <span className="flex items-center gap-1.5 text-slate-600 text-xs">
+          <Eye size={13} />
+          <span>128</span>
+        </span>
+      </div>
     </div>
   );
 }
