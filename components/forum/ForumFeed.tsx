@@ -7,7 +7,7 @@ import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2, Mes
 import { useRouter } from "next/navigation";
 
 type Author = { id: string; name: string | null; xp: number; level: number; image: string | null; role: string };
-type Post = { id: string; title: string; content: string; game: string | null; pinned: boolean; commentsEnabled: boolean; createdAt: string; author: Author };
+type Post = { id: string; title: string; content: string; game: string | null; pinned: boolean; commentsEnabled: boolean; views: number; replyCount: number; likeCount: number; likedByMe: boolean; createdAt: string; author: Author };
 
 const GAMES = ["Valorant", "CS2", "Fortnite", "Apex Legends", "League of Legends", "Minecraft", "Rocket League", "Annat"];
 
@@ -75,9 +75,21 @@ function PostCard({
   const [editTitle, setEditTitle] = useState(post.title);
   const [editContent, setEditContent] = useState(post.content);
   const [editGame, setEditGame] = useState(post.game ?? "");
+  const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [likedByMe, setLikedByMe] = useState(post.likedByMe);
   const isLong = post.content.length > 200;
   const isPinned = post.pinned;
   const router = useRouter();
+
+  async function handleLike(e: React.MouseEvent) {
+    e.stopPropagation();
+    const res = await fetch(`/api/forum/${post.id}/like`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      setLikeCount(data.count);
+      setLikedByMe(data.liked);
+    }
+  }
 
   async function handlePin() {
     setActionLoading(true);
@@ -282,17 +294,23 @@ function PostCard({
         className={cn("mt-3 flex items-center gap-4 border-t pt-3", isPinned ? "border-amber-500/15" : "border-white/5")}
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="flex items-center gap-1.5 text-slate-500 hover:text-neon-cyan transition-colors text-xs">
+        <span className="flex items-center gap-1.5 text-slate-500 text-xs">
           <MessageCircle size={13} />
-          <span>12 svar</span>
-        </button>
-        <button className="flex items-center gap-1.5 text-slate-500 hover:text-orange-400 transition-colors text-xs">
-          <Flame size={13} />
-          <span>34</span>
+          <span>{post.replyCount} svar</span>
+        </span>
+        <button
+          onClick={handleLike}
+          className={cn(
+            "flex items-center gap-1.5 text-xs transition-colors",
+            likedByMe ? "text-orange-400" : "text-slate-500 hover:text-orange-400"
+          )}
+        >
+          <Flame size={13} className={likedByMe ? "fill-orange-400" : ""} />
+          <span>{likeCount}</span>
         </button>
         <span className="flex items-center gap-1.5 text-slate-600 text-xs">
           <Eye size={13} />
-          <span>128</span>
+          <span>{post.views}</span>
         </span>
       </div>
     </div>

@@ -60,6 +60,8 @@ export default function PostDetail({
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setComments(data); })
       .finally(() => setLoadingComments(false));
+    // Increment view count
+    fetch(`/api/forum/${post.id}/view`, { method: "POST" }).catch(() => {});
   }, [post.id]);
 
   async function handleComment(e: React.FormEvent) {

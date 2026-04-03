@@ -19,12 +19,22 @@ export async function GET() {
       content: true,
       game: true,
       pinned: true,
+      views: true,
       createdAt: true,
       author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
+      _count: { select: { comments: { where: { approved: true } }, likes: true } },
+      likes: { where: { userId: session.user.id }, select: { id: true } },
     },
   });
 
-  return NextResponse.json(posts);
+  const result = posts.map(({ _count, likes, ...p }) => ({
+    ...p,
+    replyCount: _count.comments,
+    likeCount: _count.likes,
+    likedByMe: likes.length > 0,
+  }));
+
+  return NextResponse.json(result);
 }
 
 const createSchema = z.object({
@@ -58,10 +68,14 @@ export async function POST(request: Request) {
       content: true,
       game: true,
       pinned: true,
+      views: true,
       createdAt: true,
       author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
     },
   });
 
-  return NextResponse.json(post, { status: 201 });
+  return NextResponse.json(
+    { ...post, replyCount: 0, likeCount: 0, likedByMe: false, commentsEnabled: true },
+    { status: 201 }
+  );
 }

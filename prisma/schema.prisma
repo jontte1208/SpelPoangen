@@ -134,6 +134,7 @@ model User {
   orders          Order[]
   forumPosts      ForumPost[]
   forumComments   ForumComment[]
+  forumLikes      ForumLike[]
 }
 
 model Product {
@@ -242,11 +243,24 @@ model ForumPost {
   game            String?
   pinned          Boolean        @default(false)
   commentsEnabled Boolean        @default(true)
+  views           Int            @default(0)
   authorId        String
   author          User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments        ForumComment[]
+  likes           ForumLike[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+}
+
+model ForumLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
 }
 
 model ForumComment {
