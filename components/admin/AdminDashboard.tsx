@@ -27,6 +27,7 @@ import {
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import AdminQuestPanel from "./AdminQuestPanel";
+import AdminProductPanel from "./AdminProductPanel";
 
 type AdminUser = {
   id: string;
@@ -720,6 +721,11 @@ export default function AdminDashboard() {
         {/* Quest Management */}
         <div className="mb-8">
           <AdminQuestPanel />
+        </div>
+
+        {/* Product Management */}
+        <div className="mb-8">
+          <AdminProductPanel />
         </div>
 
         {/* Users table */}
