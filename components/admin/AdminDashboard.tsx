@@ -22,6 +22,7 @@ import {
   MessageSquare,
   MousePointerClick,
   Trophy,
+  Megaphone,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -98,6 +99,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
+  const [tierFilter, setTierFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
@@ -121,6 +124,10 @@ export default function AdminDashboard() {
   const [doubleXPEndsAt, setDoubleXPEndsAt] = useState<string | null>(null);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
   const [doubleXPUpdating, setDoubleXPUpdating] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastActive, setBroadcastActive] = useState(false);
+  const [broadcastSaving, setBroadcastSaving] = useState(false);
+  const [broadcastUpdatedAt, setBroadcastUpdatedAt] = useState<string | null>(null);
 
   const doubleXP = doubleXPTimer > 0;
 
@@ -162,6 +169,23 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    async function fetchBroadcastStatus() {
+      try {
+        const res = await fetch("/api/admin/broadcast", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setBroadcastMessage(typeof data.message === "string" ? data.message : "");
+        setBroadcastActive(Boolean(data.isActive));
+        setBroadcastUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : null);
+      } catch {
+        // Ignore fetch errors to keep admin panel functional.
+      }
+    }
+
+    fetchBroadcastStatus();
+  }, []);
+
+  useEffect(() => {
     if (!doubleXPEndsAt) {
       setDoubleXPTimer(0);
       return;
@@ -197,6 +221,41 @@ export default function AdminDashboard() {
     }
 
     setDoubleXPUpdating(false);
+  }
+
+  async function publishBroadcast() {
+    setBroadcastSaving(true);
+    const res = await fetch("/api/admin/broadcast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: broadcastMessage }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setBroadcastMessage(typeof data.message === "string" ? data.message : "");
+      setBroadcastActive(Boolean(data.isActive));
+      setBroadcastUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : null);
+    } else {
+      alert("Kunde inte publicera broadcast-meddelandet");
+    }
+
+    setBroadcastSaving(false);
+  }
+
+  async function clearBroadcast() {
+    setBroadcastSaving(true);
+    const res = await fetch("/api/admin/broadcast", { method: "DELETE" });
+
+    if (res.ok) {
+      const data = await res.json();
+      setBroadcastActive(Boolean(data.isActive));
+      setBroadcastUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : null);
+    } else {
+      alert("Kunde inte stänga av broadcast-meddelandet");
+    }
+
+    setBroadcastSaving(false);
   }
 
   function formatTimer(secs: number) {
@@ -400,10 +459,18 @@ export default function AdminDashboard() {
   const banned = users.filter((u) => u.isBanned).length;
   const filteredUsers = users.filter((user) => {
     const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return [user.name, user.email, user.discordId, user.id]
+    const matchesSearch = !q || [user.name, user.email, user.discordId, user.id]
       .filter(Boolean)
       .some((value) => value!.toLowerCase().includes(q));
+
+    const matchesTier = tierFilter === "ALL" || user.tier === tierFilter;
+
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "ACTIVE" && !user.isBanned) ||
+      (statusFilter === "BANNED" && user.isBanned);
+
+    return matchesSearch && matchesTier && matchesStatus;
   });
 
   return (
@@ -469,6 +536,54 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <div className="mb-8 rounded-2xl border border-white/5 bg-slate-900/50 p-5 backdrop-blur-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Megaphone size={15} className="text-neon-cyan" />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
+                Global Broadcast
+              </h2>
+            </div>
+            <span className={cn(
+              "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]",
+              broadcastActive
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                : "border-white/10 bg-white/5 text-slate-400"
+            )}>
+              {broadcastActive ? "Aktiv" : "Inaktiv"}
+            </span>
+          </div>
+
+          <textarea
+            value={broadcastMessage}
+            onChange={(e) => setBroadcastMessage(e.target.value.slice(0, 280))}
+            placeholder="Skriv ett globalt meddelande till alla inloggade användare..."
+            className="min-h-[84px] w-full resize-y rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white placeholder-slate-600 outline-none transition-colors focus:border-neon-cyan/40"
+          />
+
+          <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-slate-500">
+            <span>{broadcastMessage.length}/280 tecken</span>
+            <span>Senast uppdaterad: {formatDate(broadcastUpdatedAt)}</span>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={publishBroadcast}
+              disabled={broadcastSaving || broadcastMessage.trim().length === 0}
+              className="rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 px-4 py-2 text-sm font-semibold text-neon-cyan transition-all hover:bg-neon-cyan/20 disabled:opacity-50"
+            >
+              {broadcastSaving ? "Publicerar..." : "Publicera broadcast"}
+            </button>
+            <button
+              onClick={clearBroadcast}
+              disabled={broadcastSaving || !broadcastActive}
+              className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition-all hover:bg-red-500/20 disabled:opacity-50"
+            >
+              {broadcastSaving ? "Stänger av..." : "Stäng av broadcast"}
+            </button>
+          </div>
+        </div>
+
         {/* Quest Management */}
         <div className="mb-8">
           <AdminQuestPanel />
@@ -487,7 +602,7 @@ export default function AdminDashboard() {
                   {filteredUsers.length}/{users.length}
                 </span>
               </div>
-              <div className="w-full sm:w-80">
+              <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-[minmax(320px,1fr)_130px_130px]">
                 <input
                   type="text"
                   value={search}
@@ -495,6 +610,30 @@ export default function AdminDashboard() {
                   placeholder="Sök: namn, e-post, Discord ID, User ID"
                   className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white placeholder-slate-600 outline-none transition-colors focus:border-neon-cyan/40"
                 />
+
+                <select
+                  value={tierFilter}
+                  onChange={(e) => setTierFilter(e.target.value)}
+                  className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 outline-none transition-colors focus:border-neon-cyan/40"
+                >
+                  <option value="ALL">Tier: Alla</option>
+                  <option value="FREE">Free</option>
+                  <option value="ROOKIE">Rookie</option>
+                  <option value="GRINDER">Grinder</option>
+                  <option value="LEGEND">Legend</option>
+                  <option value="PREMIUM">Premium</option>
+                  <option value="GOLD">Gold</option>
+                </select>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 outline-none transition-colors focus:border-neon-cyan/40"
+                >
+                  <option value="ALL">Status: Alla</option>
+                  <option value="ACTIVE">Aktiv</option>
+                  <option value="BANNED">Bannad</option>
+                </select>
               </div>
             </div>
           </div>

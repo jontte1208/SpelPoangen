@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck, Zap } from "lucide-react";
+import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck, Zap, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -74,6 +74,8 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [doubleXPSecondsLeft, setDoubleXPSecondsLeft] = useState(0);
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastActive, setBroadcastActive] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const doubleXPActive = doubleXPSecondsLeft > 0;
@@ -102,6 +104,25 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
   }, []);
 
   useEffect(() => {
+    async function fetchBroadcast() {
+      try {
+        const res = await fetch("/api/broadcast", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const active = Boolean(data?.isActive && typeof data?.message === "string" && data.message.trim().length > 0);
+        setBroadcastActive(active);
+        setBroadcastMessage(active ? data.message : "");
+      } catch {
+        // Ignore fetch errors to avoid blocking UI.
+      }
+    }
+
+    fetchBroadcast();
+    const poll = setInterval(fetchBroadcast, 10000);
+    return () => clearInterval(poll);
+  }, []);
+
+  useEffect(() => {
     if (!doubleXPActive) return;
     const tick = setInterval(() => {
       setDoubleXPSecondsLeft((prev) => Math.max(0, prev - 1));
@@ -123,6 +144,13 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
     <div className="min-h-screen bg-[#020617] px-4 pb-8 pt-0 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="sticky top-0 z-50 mb-6 rounded-b-2xl border border-white/10 bg-slate-900/65 px-4 py-3 backdrop-blur-md">
+          {broadcastActive && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-2 text-fuchsia-100 shadow-[0_0_20px_rgba(217,70,239,0.25)]">
+              <Megaphone size={14} className="shrink-0 text-fuchsia-200" />
+              <p className="text-xs font-semibold tracking-[0.02em]">{broadcastMessage}</p>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="font-display text-base font-semibold tracking-[0.34em] text-neon-cyan sm:text-lg">

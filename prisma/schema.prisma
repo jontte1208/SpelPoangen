@@ -346,3 +346,12 @@ model GlobalEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model GlobalBroadcast {
+  id        String   @id @default(cuid())
+  broadcastKey String @unique
+  message   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
