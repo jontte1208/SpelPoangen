@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateLevel } from "@/lib/gamification";
+import { getWeekIndex } from "@/lib/quest-system";
 import type { Tier } from "@prisma/client";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -209,4 +210,23 @@ export async function POST(
   });
 
   return NextResponse.json(user);
+}
+
+// DELETE — reset weekly quest claims for current week
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const weekIndex = getWeekIndex();
+
+  const { count } = await prisma.userWeeklyQuestClaim.deleteMany({
+    where: { userId: params.id, weekIndex },
+  });
+
+  return NextResponse.json({ deleted: count, weekIndex });
 }

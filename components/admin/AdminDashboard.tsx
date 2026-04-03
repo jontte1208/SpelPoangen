@@ -18,6 +18,7 @@ import {
   Coins,
   Star,
   ArrowLeft,
+  RotateCcw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -91,6 +92,7 @@ export default function AdminDashboard() {
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [detailsModal, setDetailsModal] = useState<DetailsModal | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resettingQuests, setResettingQuests] = useState(false);
   const [tierUpdatingUserId, setTierUpdatingUserId] = useState<string | null>(null);
   const [tierSyncStatus, setTierSyncStatus] = useState<{ [key: string]: "syncing" | "success" | "error" | null }>({});
   const [doubleXP, setDoubleXP] = useState(false);
@@ -207,6 +209,21 @@ export default function AdminDashboard() {
     }
     setSaving(false);
     setEditModal(null);
+  }
+
+  async function resetWeeklyQuests() {
+    if (!editModal) return;
+    setResettingQuests(true);
+    const res = await fetch(`/api/admin/users/${editModal.user.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`Nollställt ${data.deleted} quest-claims för vecka ${data.weekIndex}`);
+    } else {
+      alert("Kunde inte nollställa quest-claims");
+    }
+    setResettingQuests(false);
   }
 
   async function setUserTier(user: AdminUser, tier: string) {
@@ -659,6 +676,15 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              <button
+                onClick={resetWeeklyQuests}
+                disabled={resettingQuests}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 text-sm font-semibold text-amber-400 transition-all hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                {resettingQuests ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                Nollställ veckans quests
+              </button>
 
               <div className="mt-5 flex gap-2">
                 <button
