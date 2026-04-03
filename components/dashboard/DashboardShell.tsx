@@ -194,32 +194,33 @@ export default function DashboardShell({ user }: DashboardShellProps) {
                     const isCurrentUser = entry.id === user.id;
                     const rank = String(i + 1).padStart(2, "0");
                     return (
-                      <div
-                        key={entry.id}
-                        className={cn(
-                          "rounded-2xl border p-4 transition-colors",
-                          i === 0 && "border-yellow-400/20 bg-yellow-400/5 shadow-[0_0_14px_rgba(250,204,21,0.08)]",
-                          i === 1 && "border-white/10 bg-slate-900/40",
-                          i === 2 && "border-white/10 bg-slate-900/40",
-                          isCurrentUser && i !== 0 && "border-neon-cyan/25",
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5">
-                            {i === 0 && <Crown size={13} className="shrink-0 text-yellow-400" />}
-                            {i === 1 && <Medal size={13} className="shrink-0 text-slate-300" />}
-                            {i === 2 && <Medal size={13} className="shrink-0 text-amber-600" />}
-                            <span className={cn(
-                              "font-display text-base",
-                              i === 0 && "text-yellow-400",
-                              i === 1 && "text-slate-300",
-                              i === 2 && "text-amber-600",
-                            )}>{rank}</span>
-                            <span className="text-sm text-slate-200">{entry.name ?? "Okänd"}</span>
+                      <Link key={entry.id} href={`/profile/${entry.id}`} className="block">
+                        <div
+                          className={cn(
+                            "rounded-2xl border p-4 transition-colors hover:bg-white/5",
+                            i === 0 && "border-yellow-400/20 bg-yellow-400/5 shadow-[0_0_14px_rgba(250,204,21,0.08)]",
+                            i === 1 && "border-white/10 bg-slate-900/40",
+                            i === 2 && "border-white/10 bg-slate-900/40",
+                            isCurrentUser && i !== 0 && "border-neon-cyan/25",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              {i === 0 && <Crown size={13} className="shrink-0 text-yellow-400" />}
+                              {i === 1 && <Medal size={13} className="shrink-0 text-slate-300" />}
+                              {i === 2 && <Medal size={13} className="shrink-0 text-amber-600" />}
+                              <span className={cn(
+                                "font-display text-base",
+                                i === 0 && "text-yellow-400",
+                                i === 1 && "text-slate-300",
+                                i === 2 && "text-amber-600",
+                              )}>{rank}</span>
+                              <span className="text-sm text-slate-200 transition-colors hover:text-neon-cyan">{entry.name ?? "Okänd"}</span>
+                            </div>
+                            <span className="text-xs font-semibold text-white">{entry.xp} XP</span>
                           </div>
-                          <span className="text-xs font-semibold text-white">{entry.xp} XP</span>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
             </div>
