@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
+import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -49,6 +49,12 @@ function getInitials(name?: string | null) {
     .join("");
 }
 
+function formatEventTimer(secs: number) {
+  const m = Math.floor(secs / 60).toString().padStart(2, "0");
+  const s = (secs % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 function OwnerBadge() {
   return (
     <span className="inline-flex items-center rounded-md border border-neon-cyan/40 bg-neon-cyan/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.4)]">
@@ -67,7 +73,41 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
   const progress = Math.min(Math.max((currentLevelXP / levelRange) * 100, 0), 100);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [doubleXPSecondsLeft, setDoubleXPSecondsLeft] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const doubleXPActive = doubleXPSecondsLeft > 0;
+
+  useEffect(() => {
+    async function fetchDoubleXPStatus() {
+      try {
+        const res = await fetch("/api/events/double-xp", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const endsAt = typeof data.endsAt === "string" ? data.endsAt : null;
+        if (!endsAt) {
+          setDoubleXPSecondsLeft(0);
+          return;
+        }
+        const secondsLeft = Math.max(0, Math.ceil((new Date(endsAt).getTime() - Date.now()) / 1000));
+        setDoubleXPSecondsLeft(secondsLeft);
+      } catch {
+        // Ignore fetch errors to avoid blocking UI rendering.
+      }
+    }
+
+    fetchDoubleXPStatus();
+    const poll = setInterval(fetchDoubleXPStatus, 20000);
+    return () => clearInterval(poll);
+  }, []);
+
+  useEffect(() => {
+    if (!doubleXPActive) return;
+    const tick = setInterval(() => {
+      setDoubleXPSecondsLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [doubleXPActive]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -89,6 +129,18 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
                 SPELPOANGEN
               </p>
             </div>
+
+            {doubleXPActive && (
+              <div className="hidden items-center gap-2 rounded-full border border-yellow-300/40 bg-yellow-300/15 px-3 py-1.5 lg:flex">
+                <Zap size={12} className="text-yellow-200" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-100 drop-shadow-[0_0_8px_rgba(250,204,21,0.65)]">
+                  2X XP EVENT ACTIVE
+                </span>
+                <span className="font-mono text-[10px] font-semibold text-yellow-100/90">
+                  {formatEventTimer(doubleXPSecondsLeft)}
+                </span>
+              </div>
+            )}
 
             <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
               {navItems.filter((item) => !item.premium).map((item) => {
@@ -223,6 +275,13 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
                 </Link>
               );
             })}
+
+            {doubleXPActive && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-300/40 bg-yellow-300/15 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-yellow-100 drop-shadow-[0_0_8px_rgba(250,204,21,0.65)]">
+                <Zap size={12} className="text-yellow-200" />
+                2X XP EVENT ACTIVE {formatEventTimer(doubleXPSecondsLeft)}
+              </span>
+            )}
           </nav>
 
           <div className="mt-3 space-y-2 border-t border-white/5 pt-3">

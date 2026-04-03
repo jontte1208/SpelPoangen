@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield,
@@ -19,6 +19,9 @@ import {
   Star,
   ArrowLeft,
   RotateCcw,
+  MessageSquare,
+  MousePointerClick,
+  Trophy,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -59,6 +62,14 @@ type EditModal = { user: AdminUser; xpDelta: string; coinsDelta: string; tier: s
 
 type DetailsModal = { user: AdminUser };
 
+type UserActivityItem = {
+  id: string;
+  type: "forum_post" | "quest_claim" | "product_click";
+  title: string;
+  description: string;
+  createdAt: string;
+};
+
 function StatCard({
   icon: Icon,
   label,
@@ -91,13 +102,37 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [detailsModal, setDetailsModal] = useState<DetailsModal | null>(null);
+  const [activityTimeline, setActivityTimeline] = useState<UserActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [activitySummary, setActivitySummary] = useState<{
+    lastForumPostAt: string | null;
+    lastQuestClaimAt: string | null;
+    lastProductClickAt: string | null;
+  }>({
+    lastForumPostAt: null,
+    lastQuestClaimAt: null,
+    lastProductClickAt: null,
+  });
   const [saving, setSaving] = useState(false);
   const [resettingQuests, setResettingQuests] = useState(false);
   const [tierUpdatingUserId, setTierUpdatingUserId] = useState<string | null>(null);
   const [tierSyncStatus, setTierSyncStatus] = useState<{ [key: string]: "syncing" | "success" | "error" | null }>({});
-  const [doubleXP, setDoubleXP] = useState(false);
+  const [doubleXPEndsAt, setDoubleXPEndsAt] = useState<string | null>(null);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [doubleXPUpdating, setDoubleXPUpdating] = useState(false);
+
+  const doubleXP = doubleXPTimer > 0;
+
+  function syncDoubleXPState(endsAt: string | null) {
+    setDoubleXPEndsAt(endsAt);
+    if (!endsAt) {
+      setDoubleXPTimer(0);
+      return;
+    }
+    const secondsLeft = Math.max(0, Math.ceil((new Date(endsAt).getTime() - Date.now()) / 1000));
+    setDoubleXPTimer(secondsLeft);
+  }
 
   useEffect(() => {
     fetch("/api/admin/users")
@@ -109,28 +144,60 @@ export default function AdminDashboard() {
       .catch(() => setLoading(false));
   }, []);
 
-  function startDoubleXP() {
-    if (doubleXP) {
-      setDoubleXP(false);
+  useEffect(() => {
+    async function fetchDoubleXPStatus() {
+      try {
+        const res = await fetch("/api/admin/events/double-xp", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        syncDoubleXPState(typeof data.endsAt === "string" ? data.endsAt : null);
+      } catch {
+        // Ignore polling errors so the admin panel remains usable.
+      }
+    }
+
+    fetchDoubleXPStatus();
+    const poll = setInterval(fetchDoubleXPStatus, 15000);
+    return () => clearInterval(poll);
+  }, []);
+
+  useEffect(() => {
+    if (!doubleXPEndsAt) {
       setDoubleXPTimer(0);
-      if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
-    setDoubleXP(true);
-    setDoubleXPTimer(3600);
-    timerRef.current = setInterval(() => {
-      setDoubleXPTimer((t) => {
-        if (t <= 1) {
-          setDoubleXP(false);
-          if (timerRef.current) clearInterval(timerRef.current);
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-  }
 
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+    const updateCountdown = () => {
+      const secondsLeft = Math.max(0, Math.ceil((new Date(doubleXPEndsAt).getTime() - Date.now()) / 1000));
+      setDoubleXPTimer(secondsLeft);
+      if (secondsLeft === 0) {
+        setDoubleXPEndsAt(null);
+      }
+    };
+
+    updateCountdown();
+    const tick = setInterval(updateCountdown, 1000);
+    return () => clearInterval(tick);
+  }, [doubleXPEndsAt]);
+
+  async function startDoubleXP() {
+    setDoubleXPUpdating(true);
+
+    const res = await fetch("/api/admin/events/double-xp", {
+      method: doubleXP ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: doubleXP ? undefined : JSON.stringify({ durationMinutes: 60 }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      syncDoubleXPState(typeof data.endsAt === "string" ? data.endsAt : null);
+    } else {
+      alert("Kunde inte uppdatera Double XP-eventet");
+    }
+
+    setDoubleXPUpdating(false);
+  }
 
   function formatTimer(secs: number) {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -152,6 +219,48 @@ export default function AdminDashboard() {
       .map((s) => s.trim())
       .filter(Boolean)
       .join(", ");
+  }
+
+  function getActivityIcon(type: UserActivityItem["type"]) {
+    if (type === "forum_post") return MessageSquare;
+    if (type === "quest_claim") return Trophy;
+    return MousePointerClick;
+  }
+
+  function getActivityAccent(type: UserActivityItem["type"]) {
+    if (type === "forum_post") return "text-blue-300 border-blue-400/20 bg-blue-500/10";
+    if (type === "quest_claim") return "text-emerald-300 border-emerald-400/20 bg-emerald-500/10";
+    return "text-amber-300 border-amber-400/20 bg-amber-500/10";
+  }
+
+  async function openDetailsModal(user: AdminUser) {
+    setDetailsModal({ user });
+    setActivityLoading(true);
+    setActivityError(null);
+    setActivityTimeline([]);
+    setActivitySummary({
+      lastForumPostAt: null,
+      lastQuestClaimAt: null,
+      lastProductClickAt: null,
+    });
+
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/activity?limit=30`, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("Kunde inte hämta aktivitet");
+      }
+      const data = await res.json();
+      setActivityTimeline(Array.isArray(data.timeline) ? data.timeline : []);
+      setActivitySummary({
+        lastForumPostAt: typeof data.lastForumPostAt === "string" ? data.lastForumPostAt : null,
+        lastQuestClaimAt: typeof data.lastQuestClaimAt === "string" ? data.lastQuestClaimAt : null,
+        lastProductClickAt: typeof data.lastProductClickAt === "string" ? data.lastProductClickAt : null,
+      });
+    } catch {
+      setActivityError("Kunde inte ladda användarens aktivitetslogg.");
+    } finally {
+      setActivityLoading(false);
+    }
   }
 
   async function copyToClipboard(value: string, fieldKey: string) {
@@ -342,8 +451,9 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={startDoubleXP}
+              disabled={doubleXPUpdating}
               className={cn(
-                "flex items-center gap-2.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200",
+                "flex items-center gap-2.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-60",
                 doubleXP
                   ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-300 shadow-[0_0_16px_rgba(250,204,21,0.2)]"
                   : "border-white/10 bg-white/5 text-slate-300 hover:border-neon-cyan/30 hover:text-white"
@@ -351,7 +461,7 @@ export default function AdminDashboard() {
             >
               <Zap size={15} className={doubleXP ? "text-yellow-300" : "text-slate-400"} />
               {doubleXP ? (
-                <span>Double XP aktiv — {formatTimer(doubleXPTimer)} kvar</span>
+                <span>Double XP globalt aktiv — {formatTimer(doubleXPTimer)} kvar</span>
               ) : (
                 <span>Starta Double XP (1h)</span>
               )}
@@ -494,7 +604,7 @@ export default function AdminDashboard() {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setDetailsModal({ user })}
+                            onClick={() => openDetailsModal(user)}
                             className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-semibold text-blue-300 transition-all hover:border-blue-500/40 hover:bg-blue-500/10"
                           >
                             Visa info
@@ -840,6 +950,68 @@ export default function AdminDashboard() {
                       : "-"}
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-white/10 bg-slate-900/50 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300">
+                    Aktivitets-tidslinje
+                  </h4>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                    Senaste 30 events
+                  </span>
+                </div>
+
+                <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border border-white/10 bg-slate-950/70 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Senaste inlägg</p>
+                    <p className="mt-1 text-[11px] text-slate-300">{formatDate(activitySummary.lastForumPostAt)}</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-slate-950/70 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Senaste quest claim</p>
+                    <p className="mt-1 text-[11px] text-slate-300">{formatDate(activitySummary.lastQuestClaimAt)}</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-slate-950/70 p-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Senaste produktklick</p>
+                    <p className="mt-1 text-[11px] text-slate-300">{formatDate(activitySummary.lastProductClickAt)}</p>
+                  </div>
+                </div>
+
+                {activityLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={18} className="animate-spin text-neon-cyan/60" />
+                  </div>
+                ) : activityError ? (
+                  <p className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                    {activityError}
+                  </p>
+                ) : activityTimeline.length === 0 ? (
+                  <p className="rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-xs text-slate-400">
+                    Ingen aktivitet hittades för användaren än.
+                  </p>
+                ) : (
+                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {activityTimeline.map((item) => {
+                      const Icon = getActivityIcon(item.type);
+                      return (
+                        <div key={item.id} className="rounded-lg border border-white/10 bg-slate-950/70 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-start gap-2.5">
+                              <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border", getActivityAccent(item.type))}>
+                                <Icon size={12} />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-semibold text-white">{item.title}</p>
+                                <p className="mt-0.5 text-[11px] text-slate-400">{item.description}</p>
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-[10px] text-slate-500">{formatDate(item.createdAt)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex justify-end">

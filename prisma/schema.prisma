@@ -338,3 +338,11 @@ model BattlePassTier {
 
   @@unique([battlePassId, level])
 }
+
+model GlobalEvent {
+  id        String   @id @default(cuid())
+  eventKey  String   @unique
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
