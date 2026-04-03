@@ -1,36 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Users, UserPlus, ShoppingBag, Trophy, Zap, Coins } from "lucide-react";
+import { Users, UserPlus, ShoppingBag, MessageSquare, Gamepad2, Headphones, Trophy, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type Quest = {
+type QuestDef = {
   id: string;
   title: string;
   description: string;
   icon: LucideIcon;
   xp: number;
-  coins: number;
-  progress: number;
   goal: number;
+  image: string; // Unsplash URL
 };
 
-// ─── Static quest definitions ─────────────────────────────────────────────────
-// To add a new quest: append an entry to this array.
+// ─── Quest pool ───────────────────────────────────────────────────────────────
+// Add new quests here — 3 are picked automatically each Monday.
 
-const WEEKLY_QUESTS: Quest[] = [
+const QUEST_POOL: QuestDef[] = [
   {
     id: "forum-warrior",
     title: "Forum-krigaren",
     description: "Skriv 5 inlägg i forumet och visa att du hör hemma här.",
-    icon: Users,
+    icon: MessageSquare,
     xp: 150,
-    coins: 25,
-    progress: 0,
     goal: 5,
+    image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&q=80",
   },
   {
     id: "social-gaming",
@@ -38,9 +37,8 @@ const WEEKLY_QUESTS: Quest[] = [
     description: "Bjud in en vän till SpelPoängen och dela loot-jakten.",
     icon: UserPlus,
     xp: 200,
-    coins: 50,
-    progress: 0,
     goal: 1,
+    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
   },
   {
     id: "loot-scout",
@@ -48,19 +46,68 @@ const WEEKLY_QUESTS: Quest[] = [
     description: "Besök 3 olika produkter i butiken och hitta ditt nästa köp.",
     icon: ShoppingBag,
     xp: 50,
-    coins: 10,
-    progress: 0,
     goal: 3,
+    image: "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?w=800&q=80",
+  },
+  {
+    id: "squad-up",
+    title: "Squad Up",
+    description: "Hitta tre spelare att köra med via forumet.",
+    icon: Users,
+    xp: 175,
+    goal: 3,
+    image: "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=800&q=80",
+  },
+  {
+    id: "gear-check",
+    title: "Gear Check",
+    description: "Kolla in 5 produkter i butiken — uppgradera din setup.",
+    icon: Headphones,
+    xp: 75,
+    goal: 5,
+    image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&q=80",
+  },
+  {
+    id: "grind-session",
+    title: "Grind Session",
+    description: "Logga in 3 dagar i rad och håll streaken vid liv.",
+    icon: Gamepad2,
+    xp: 100,
+    goal: 3,
+    image: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&q=80",
   },
 ];
 
-// ─── Countdown hook ───────────────────────────────────────────────────────────
+// ─── Week-based rotation ──────────────────────────────────────────────────────
+
+function getWeekIndex() {
+  // Week 0 = week starting 1970-01-05 (first Monday)
+  const EPOCH_MONDAY = 4 * 24 * 60 * 60 * 1000;
+  return Math.floor((Date.now() - EPOCH_MONDAY) / (7 * 24 * 60 * 60 * 1000));
+}
+
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const copy = [...arr];
+  let s = seed;
+  for (let i = copy.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    const j = Math.abs(s) % (i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function getWeeklyQuests(): QuestDef[] {
+  return seededShuffle(QUEST_POOL, getWeekIndex()).slice(0, 3);
+}
+
+// ─── Countdown ────────────────────────────────────────────────────────────────
 
 function msUntilNextMonday() {
   const now = new Date();
-  const day = now.getUTCDay(); // 0=Sun … 6=Sat
-  const daysUntilMonday = ((1 - day + 7) % 7) || 7;
-  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday));
+  const day = now.getUTCDay();
+  const daysUntil = ((1 - day + 7) % 7) || 7;
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntil));
   return next.getTime() - now.getTime();
 }
 
@@ -70,116 +117,124 @@ function useCountdown() {
     const id = setInterval(() => setMs(msUntilNextMonday()), 1000);
     return () => clearInterval(id);
   }, []);
-  const totalSecs = Math.floor(ms / 1000);
-  const d = Math.floor(totalSecs / 86400);
-  const h = Math.floor((totalSecs % 86400) / 3600);
-  const m = Math.floor((totalSecs % 3600) / 60);
-  const s = totalSecs % 60;
-  return `${d}d ${h}h ${m}m ${s}s`;
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h ${Math.floor((s % 3600) / 60)}m ${s % 60}s`;
 }
 
 // ─── QuestCard ────────────────────────────────────────────────────────────────
 
-function QuestCard({ quest, claimed, onClaim }: { quest: Quest; claimed: boolean; onClaim: () => void }) {
-  const pct = Math.min((quest.progress / quest.goal) * 100, 100);
-  const complete = quest.progress >= quest.goal;
+function QuestCard({ quest, progress, claimed, onClaim }: {
+  quest: QuestDef;
+  progress: number;
+  claimed: boolean;
+  onClaim: () => void;
+}) {
+  const pct = Math.min((progress / quest.goal) * 100, 100);
+  const complete = progress >= quest.goal;
   const Icon = quest.icon;
 
   return (
     <div className={cn(
-      "relative flex flex-col rounded-2xl border p-5 backdrop-blur-xl transition-colors",
-      claimed
-        ? "border-emerald-500/30 bg-emerald-950/20"
-        : complete
-        ? "border-neon-cyan/30 bg-slate-900/50 shadow-[0_0_20px_rgba(0,245,255,0.06)]"
-        : "border-white/8 bg-slate-900/50"
+      "flex flex-col overflow-hidden rounded-2xl border backdrop-blur-xl transition-colors",
+      claimed ? "border-emerald-500/30" : complete ? "border-neon-cyan/25 shadow-[0_0_20px_rgba(0,245,255,0.06)]" : "border-white/8"
     )}>
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-4">
-        <div className={cn(
-          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border",
-          claimed
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-            : complete
-            ? "border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan"
-            : "border-white/10 bg-slate-800/60 text-slate-400"
-        )}>
-          <Icon size={20} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-white leading-snug">{quest.title}</h3>
-          <p className="mt-0.5 text-sm text-slate-400 leading-snug">{quest.description}</p>
-        </div>
-      </div>
-
-      {/* Rewards */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="inline-flex items-center gap-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-400">
-          <Zap size={10} />
-          +{quest.xp} XP
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[11px] font-semibold text-yellow-400">
-          <Coins size={10} />
-          +{quest.coins} Coins
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="mb-4">
-        <div className="mb-1.5 flex items-center justify-between text-[11px] text-slate-500">
-          <span>Framsteg</span>
-          <span className={complete ? "text-neon-cyan font-semibold" : ""}>{quest.progress}/{quest.goal}</span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-          <div
-            className={cn(
-              "h-full rounded-full transition-all duration-500",
-              claimed
-                ? "bg-emerald-400"
-                : complete
-                ? "bg-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.6)]"
-                : "bg-slate-600"
-            )}
-            style={{ width: `${pct}%` }}
-          />
+      {/* Image header */}
+      <div className="relative h-36 w-full shrink-0">
+        <Image
+          src={quest.image}
+          alt={quest.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 50vw"
+        />
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+        {/* Icon + title on image */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-end gap-3 px-5 pb-4">
+          <div className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+            claimed ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-400"
+              : complete ? "border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan"
+              : "border-white/15 bg-slate-900/70 text-slate-300"
+          )}>
+            <Icon size={17} />
+          </div>
+          <h3 className="font-bold text-white text-base leading-snug drop-shadow-md">{quest.title}</h3>
         </div>
       </div>
 
-      {/* Claim button */}
-      <button
-        onClick={onClaim}
-        disabled={!complete || claimed}
-        className={cn(
-          "mt-auto w-full rounded-xl py-2.5 text-sm font-semibold transition-all",
-          claimed
-            ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 cursor-default"
-            : complete
-            ? "border border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25 shadow-[0_0_14px_rgba(0,245,255,0.2)]"
-            : "border border-white/5 bg-slate-800/40 text-slate-600 cursor-not-allowed"
-        )}
-      >
-        {claimed ? "✓ Hämtad" : complete ? "Hämta belöning" : "Låst"}
-      </button>
+      {/* Card body */}
+      <div className="flex flex-1 flex-col gap-4 bg-slate-900/80 p-5">
+        <p className="text-sm text-slate-400 leading-relaxed">{quest.description}</p>
+
+        {/* XP badge */}
+        <div>
+          <span className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-sm font-bold",
+            claimed ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+              : complete ? "border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan"
+              : "border-blue-500/30 bg-blue-500/10 text-blue-400"
+          )}>
+            <Zap size={13} />
+            +{quest.xp} XP
+          </span>
+        </div>
+
+        {/* Progress */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Framsteg</span>
+            <span className={complete ? "font-semibold text-neon-cyan" : ""}>{progress}/{quest.goal}</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                claimed ? "bg-emerald-400"
+                  : complete ? "bg-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.5)]"
+                  : "bg-slate-600"
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Claim button */}
+        <button
+          onClick={onClaim}
+          disabled={!complete || claimed}
+          className={cn(
+            "mt-auto w-full rounded-xl py-2.5 text-sm font-semibold transition-all",
+            claimed ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 cursor-default"
+              : complete ? "border border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25 shadow-[0_0_14px_rgba(0,245,255,0.2)]"
+              : "border border-white/5 bg-slate-800/40 text-slate-600 cursor-not-allowed"
+          )}
+        >
+          {claimed ? "✓ Hämtad" : complete ? "Hämta belöning" : "Låst"}
+        </button>
+      </div>
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function WeeklyQuests() {
   const countdown = useCountdown();
-  const [claimed, setClaimed] = useState<Set<string>>(new Set());
+  const quests = useMemo(() => getWeeklyQuests(), []);
+  const [claimed, setClaimed] = useState<string[]>([]);
 
-  const allClaimed = claimed.size === WEEKLY_QUESTS.length;
+  // Demo: progress is at 0 for all. Wire up to real DB later.
+  const progress: Record<string, number> = {};
+  quests.forEach((q) => { progress[q.id] = 0; });
 
-  function handleClaim(id: string) {
-    setClaimed((prev) => new Set(Array.from(prev).concat(id)));
-  }
+  const allClaimed = claimed.length === quests.length;
+  const totalXP = quests.reduce((sum, q) => sum + q.xp, 0);
 
   return (
     <div className="space-y-6">
-      {/* Weekly header */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-neon-cyan/70 mb-1">Den här veckan</p>
           <h2 className="text-2xl font-bold text-white">Veckans Utmaningar</h2>
@@ -197,17 +252,21 @@ export default function WeeklyQuests() {
           <Trophy size={52} className="text-yellow-400" />
           <div>
             <p className="text-lg font-bold text-yellow-300">Veckans loot säkrad!</p>
-            <p className="mt-1 text-sm text-slate-400">Kom tillbaka nästa vecka för mer.</p>
+            <p className="mt-1 text-sm text-slate-400">
+              Du tjänade <span className="text-blue-400 font-semibold">{totalXP} XP</span> den här veckan.
+            </p>
+            <p className="mt-0.5 text-sm text-slate-500">Kom tillbaka nästa måndag för nya utmaningar.</p>
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {WEEKLY_QUESTS.map((quest) => (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {quests.map((quest) => (
             <QuestCard
               key={quest.id}
               quest={quest}
-              claimed={claimed.has(quest.id)}
-              onClaim={() => handleClaim(quest.id)}
+              progress={progress[quest.id] ?? 0}
+              claimed={claimed.includes(quest.id)}
+              onClaim={() => setClaimed((prev) => prev.concat(quest.id))}
             />
           ))}
         </div>
