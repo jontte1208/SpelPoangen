@@ -4,122 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateLevel } from "@/lib/gamification";
 import { getWeekIndex } from "@/lib/quest-system";
+import { syncUserTierRole } from "@/lib/discord-bot";
 import type { Tier } from "@prisma/client";
 
-const DISCORD_API_BASE = "https://discord.com/api/v10";
 const ALLOWED_TIERS = new Set<Tier>(["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND"]);
-
-function getDiscordTierRoleConfig() {
-  const guildId = process.env.DISCORD_GUILD_ID;
-  const botToken = process.env.DISCORD_BOT_TOKEN;
-
-  if (!guildId || !botToken) {
-    return null;
-  }
-
-  return {
-    guildId,
-    botToken,
-    tierRoleIds: {
-      ROOKIE: process.env.DISCORD_ROOKIE_ROLE_ID ?? process.env.DISCORD_LEVEL_1_ROLE_ID ?? null,
-      GRINDER: process.env.DISCORD_GRINDER_ROLE_ID ?? process.env.DISCORD_LEVEL_10_ROLE_ID ?? null,
-      LEGEND: process.env.DISCORD_LEGEND_ROLE_ID ?? process.env.DISCORD_LEVEL_50_ROLE_ID ?? null,
-      PREMIUM: process.env.DISCORD_PREMIUM_ROLE_ID ?? process.env.DISCORD_VIP_ROLE_ID ?? null,
-      GOLD: process.env.DISCORD_GOLD_ROLE_ID ?? null,
-      FREE: process.env.DISCORD_FREE_ROLE_ID ?? null,
-    } as Record<Tier, string | null>,
-  };
-}
-
-async function updateDiscordMemberRole(params: {
-  guildId: string;
-  botToken: string;
-  discordUserId: string;
-  roleId: string;
-  add: boolean;
-}) {
-  const { guildId, botToken, discordUserId, roleId, add } = params;
-
-  const response = await fetch(
-    `${DISCORD_API_BASE}/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
-    {
-      method: add ? "PUT" : "DELETE",
-      headers: {
-        Authorization: `Bot ${botToken}`,
-      },
-    }
-  );
-
-  if (response.ok || response.status === 204 || response.status === 404) {
-    return;
-  }
-
-  const body = await response.text();
-  throw new Error(
-    `Discord role sync failed (${response.status}): ${body.slice(0, 300)}`
-  );
-}
-
-async function syncDiscordTierRoles(params: {
-  discordUserId: string;
-  tier: Tier;
-  userId: string;
-}) {
-  const config = getDiscordTierRoleConfig();
-  if (!config) {
-    console.warn("[admin.users.patch] discord tier sync skipped", {
-      userId: params.userId,
-      discordUserId: params.discordUserId,
-      tier: params.tier,
-      reason: "missing_guild_or_bot_token",
-    });
-    return;
-  }
-
-  const uniqueRoleIds = Array.from(
-    new Set(Object.values(config.tierRoleIds).filter((roleId): roleId is string => Boolean(roleId)))
-  );
-
-  if (uniqueRoleIds.length === 0) {
-    console.warn("[admin.users.patch] discord tier sync skipped", {
-      userId: params.userId,
-      discordUserId: params.discordUserId,
-      tier: params.tier,
-      reason: "missing_role_mapping",
-    });
-    return;
-  }
-
-  const targetRoleId = config.tierRoleIds[params.tier];
-  if (!targetRoleId) {
-    console.warn("[admin.users.patch] discord tier sync skipped", {
-      userId: params.userId,
-      discordUserId: params.discordUserId,
-      tier: params.tier,
-      reason: "missing_target_role_for_tier",
-    });
-    return;
-  }
-
-  for (const roleId of uniqueRoleIds) {
-    const shouldAdd = roleId === targetRoleId;
-    await updateDiscordMemberRole({
-      guildId: config.guildId,
-      botToken: config.botToken,
-      discordUserId: params.discordUserId,
-      roleId,
-      add: shouldAdd,
-    });
-  }
-
-  console.info("[admin.users.patch] discord tier sync completed", {
-    userId: params.userId,
-    discordUserId: params.discordUserId,
-    tier: params.tier,
-    guildId: config.guildId,
-    targetRoleId,
-  });
-}
 
 // PATCH — edit XP / coins
 export async function PATCH(
@@ -174,21 +62,31 @@ export async function PATCH(
     },
   });
 
+  let discordSync: "success" | "skipped" | "error" = "skipped";
+  let discordSyncError: string | undefined;
+
   if (nextTier && user.discordId) {
     try {
-      await syncDiscordTierRoles({
+      await syncUserTierRole(user.discordId, nextTier);
+      discordSync = "success";
+      console.info("[admin.users.patch] discord tier sync completed", {
         userId: user.id,
-        discordUserId: user.discordId,
+        discordId: user.discordId,
         tier: nextTier,
       });
     } catch (error) {
+      discordSync = "error";
+      discordSyncError = error instanceof Error ? error.message : String(error);
       console.error("[admin.users.patch] discord tier sync failed", {
         userId: user.id,
-        discordUserId: user.discordId,
+        discordId: user.discordId,
         tier: nextTier,
-        error: error instanceof Error ? error.message : String(error),
+        error: discordSyncError,
       });
     }
+  } else if (nextTier && !user.discordId) {
+    discordSync = "skipped";
+    discordSyncError = "Användaren har inget Discord-konto kopplat";
   }
 
   return NextResponse.json({
@@ -197,6 +95,8 @@ export async function PATCH(
     level: user.level,
     coins: user.coins,
     tier: user.tier,
+    discordSync,
+    discordSyncError,
   });
 }
 

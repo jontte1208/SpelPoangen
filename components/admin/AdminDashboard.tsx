@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { getLevelMilestone } from "@/lib/level-milestones";
 import AdminQuestPanel from "./AdminQuestPanel";
 
 type AdminUser = {
@@ -121,8 +120,8 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [resettingQuests, setResettingQuests] = useState(false);
   const [tierUpdatingUserId, setTierUpdatingUserId] = useState<string | null>(null);
-  const [tierSyncStatus, setTierSyncStatus] = useState<{ [key: string]: "syncing" | "success" | "error" | null }>({});
-  const [discordSyncingUserId, setDiscordSyncingUserId] = useState<string | null>(null);
+  const [tierSyncStatus, setTierSyncStatus] = useState<{ [key: string]: "syncing" | "success" | "skipped" | "error" | null }>({});
+  const [tierSyncMessage, setTierSyncMessage] = useState<{ [key: string]: string }>({});
   const [doubleXPEndsAt, setDoubleXPEndsAt] = useState<string | null>(null);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
   const [doubleXPUpdating, setDoubleXPUpdating] = useState(false);
@@ -342,12 +341,12 @@ export default function AdminDashboard() {
     setSaving(true);
     const xpDelta = parseInt(editModal.xpDelta) || 0;
     const coinsDelta = parseInt(editModal.coinsDelta) || 0;
-    const tier = ["FREE", "ROOKIE", "GRINDER", "VETERAN", "LEGEND", "PREMIUM", "GOLD"].includes(editModal.tier)
+    const tier = ["FREE", "ROOKIE", "GRINDER", "LEGEND", "PREMIUM", "GOLD"].includes(editModal.tier)
       ? editModal.tier
       : undefined;
     
-    // Show syncing status
     setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "syncing" }));
+    setTierSyncMessage((prev) => ({ ...prev, [editModal.user.id]: "" }));
     
     const res = await fetch(`/api/admin/users/${editModal.user.id}`, {
       method: "PATCH",
@@ -363,20 +362,43 @@ export default function AdminDashboard() {
                 ...u,
                 xp: updated.xp,
                 coins: updated.coins,
+                level: typeof updated.level === "number" ? updated.level : u.level,
                 tier: typeof updated.tier === "string" ? updated.tier : u.tier,
               }
             : u
         )
       );
-      setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "success" }));
+
+      const syncStatus = updated.discordSync as string | undefined;
+      if (syncStatus === "success") {
+        setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "success" }));
+        setTierSyncMessage((prev) => ({ ...prev, [editModal.user.id]: "Discord-roll uppdaterad!" }));
+      } else if (syncStatus === "error") {
+        setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "error" }));
+        setTierSyncMessage((prev) => ({
+          ...prev,
+          [editModal.user.id]: updated.discordSyncError ?? "Discord sync misslyckades",
+        }));
+      } else if (syncStatus === "skipped") {
+        setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "skipped" }));
+        setTierSyncMessage((prev) => ({
+          ...prev,
+          [editModal.user.id]: updated.discordSyncError ?? "Discord-synk överhoppad",
+        }));
+      } else {
+        setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "success" }));
+        setTierSyncMessage((prev) => ({ ...prev, [editModal.user.id]: "Sparad!" }));
+      }
       setTimeout(() => {
         setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: null }));
-      }, 2000);
+        setTierSyncMessage((prev) => ({ ...prev, [editModal.user.id]: "" }));
+      }, 4000);
     } else {
       setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: "error" }));
+      setTierSyncMessage((prev) => ({ ...prev, [editModal.user.id]: "API-fel: kunde inte spara" }));
       setTimeout(() => {
         setTierSyncStatus((prev) => ({ ...prev, [editModal.user.id]: null }));
-      }, 2000);
+      }, 4000);
     }
     setSaving(false);
     setEditModal(null);
@@ -397,18 +419,10 @@ export default function AdminDashboard() {
     setResettingQuests(false);
   }
 
-  async function syncDiscordRoles(userId: string) {
-    setDiscordSyncingUserId(userId);
-    try {
-      await fetch(`/api/admin/users/${userId}/sync-discord`, { method: "POST" });
-    } finally {
-      setDiscordSyncingUserId(null);
-    }
-  }
-
   async function setUserTier(user: AdminUser, tier: string) {
     setTierUpdatingUserId(user.id);
     setTierSyncStatus((prev) => ({ ...prev, [user.id]: "syncing" }));
+    setTierSyncMessage((prev) => ({ ...prev, [user.id]: "" }));
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
@@ -418,9 +432,10 @@ export default function AdminDashboard() {
 
       if (!res.ok) {
         setTierSyncStatus((prev) => ({ ...prev, [user.id]: "error" }));
+        setTierSyncMessage((prev) => ({ ...prev, [user.id]: "API-fel" }));
         setTimeout(() => {
           setTierSyncStatus((prev) => ({ ...prev, [user.id]: null }));
-        }, 2000);
+        }, 4000);
         return;
       }
 
@@ -428,14 +443,41 @@ export default function AdminDashboard() {
       setUsers((prev) =>
         prev.map((u) =>
           u.id === user.id
-            ? { ...u, tier: typeof updated.tier === "string" ? updated.tier : tier }
+            ? {
+                ...u,
+                tier: typeof updated.tier === "string" ? updated.tier : tier,
+                level: typeof updated.level === "number" ? updated.level : u.level,
+              }
             : u
         )
       );
-      setTierSyncStatus((prev) => ({ ...prev, [user.id]: "success" }));
+
+      const syncStatus = updated.discordSync as string | undefined;
+      if (syncStatus === "success") {
+        setTierSyncStatus((prev) => ({ ...prev, [user.id]: "success" }));
+        setTierSyncMessage((prev) => ({ ...prev, [user.id]: "Discord-roll uppdaterad!" }));
+      } else if (syncStatus === "error") {
+        setTierSyncStatus((prev) => ({ ...prev, [user.id]: "error" }));
+        setTierSyncMessage((prev) => ({
+          ...prev,
+          [user.id]: updated.discordSyncError ?? "Discord sync misslyckades",
+        }));
+      } else if (syncStatus === "skipped") {
+        setTierSyncStatus((prev) => ({ ...prev, [user.id]: "skipped" }));
+        setTierSyncMessage((prev) => ({
+          ...prev,
+          [user.id]: updated.discordSyncError ?? "Discord-synk överhoppad",
+        }));
+      } else {
+        setTierSyncStatus((prev) => ({ ...prev, [user.id]: "success" }));
+        setTierSyncMessage((prev) => ({ ...prev, [user.id]: "Sparad!" }));
+      }
+
       setTimeout(() => {
         setTierSyncStatus((prev) => ({ ...prev, [user.id]: null }));
-      }, 2000);
+        setTierSyncMessage((prev) => ({ ...prev, [user.id]: "" }));
+      }, 4000);
+
       setDetailsModal((current) =>
         current && current.user.id === user.id
           ? {
@@ -629,11 +671,12 @@ export default function AdminDashboard() {
                   className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 outline-none transition-colors focus:border-neon-cyan/40"
                 >
                   <option value="ALL">Tier: Alla</option>
-                  <option value="ROOKIE">ROOKIE (LVL 1)</option>
-                  <option value="GRINDER">GRINDER (LVL 10+)</option>
-                  <option value="VETERAN">VETERAN (LVL 25+)</option>
-                  <option value="LEGEND">LEGEND (LVL 50+)</option>
-                  <option value="PREMIUM">PREMIUM PASS</option>
+                  <option value="FREE">Free</option>
+                  <option value="ROOKIE">Rookie</option>
+                  <option value="GRINDER">Grinder</option>
+                  <option value="LEGEND">Legend</option>
+                  <option value="PREMIUM">Premium</option>
+                  <option value="GOLD">Gold</option>
                 </select>
 
                 <select
@@ -722,33 +765,22 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-mono text-slate-300">{user.level}</span>
-                          {(() => {
-                            const m = getLevelMilestone(user.level);
-                            return (
-                              <span className={cn("rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] w-fit", m.textColor, m.bgColor, m.borderColor)}>
-                                {m.emoji} {m.label}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </td>
+                      <td className="px-5 py-3.5 font-mono text-slate-300">{user.level}</td>
                       <td className="px-5 py-3.5 font-mono text-slate-300">{user.xp.toLocaleString()}</td>
                       <td className="px-5 py-3.5 font-mono text-slate-300">{user.coins.toLocaleString()}</td>
                       <td className="px-5 py-3.5">
                         <span
                           className={cn(
                             "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]",
-                            user.tier === "LEGEND"  && "bg-amber-500/15 text-amber-400",
+                            user.tier === "LEGEND" && "bg-amber-500/15 text-amber-400",
                             user.tier === "PREMIUM" && "bg-purple-500/15 text-purple-400",
-                            user.tier === "VETERAN" && "bg-orange-500/15 text-orange-400",
                             user.tier === "GRINDER" && "bg-green-500/15 text-green-400",
-                            user.tier === "ROOKIE"  && "bg-violet-500/15 text-violet-400",
+                            user.tier === "GOLD" && "bg-yellow-500/15 text-yellow-400",
+                            user.tier === "ROOKIE" && "bg-blue-500/15 text-blue-400",
+                            user.tier === "FREE" && "bg-slate-500/15 text-slate-400"
                           )}
                         >
-                          {user.tier === "PREMIUM" ? "PREMIUM PASS" : user.tier}
+                          {user.tier}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
@@ -778,18 +810,6 @@ export default function AdminDashboard() {
                           >
                             Redigera
                           </button>
-                          <button
-                            onClick={() => syncDiscordRoles(user.id)}
-                            disabled={discordSyncingUserId === user.id}
-                            title="Synca Discord-roller"
-                            className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-2 py-1.5 text-[11px] font-semibold text-indigo-300 transition-all hover:border-indigo-500/40 hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {discordSyncingUserId === user.id ? (
-                              <Loader2 size={11} className="animate-spin" />
-                            ) : (
-                              <RotateCcw size={11} />
-                            )}
-                          </button>
                             <div className="relative">
                               <select
                                 value={user.tier}
@@ -797,14 +817,28 @@ export default function AdminDashboard() {
                                 disabled={tierUpdatingUserId === user.id}
                                 className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-1.5 text-[11px] font-semibold text-violet-300 transition-all hover:border-violet-500/40 hover:bg-violet-500/10 disabled:cursor-not-allowed disabled:opacity-50 appearance-none pr-8"
                               >
-                                <option value="ROOKIE">ROOKIE (LVL 1)</option>
-                                <option value="GRINDER">GRINDER (LVL 10+)</option>
-                                <option value="VETERAN">VETERAN (LVL 25+)</option>
-                                <option value="LEGEND">LEGEND (LVL 50+)</option>
-                                <option value="PREMIUM">PREMIUM PASS</option>
+                                <option value="FREE">FREE</option>
+                                <option value="ROOKIE">ROOKIE</option>
+                                <option value="GRINDER">GRINDER</option>
+                                <option value="LEGEND">LEGEND</option>
+                                <option value="PREMIUM">PREMIUM (VIP)</option>
+                                <option value="GOLD">GOLD</option>
                               </select>
                               {tierUpdatingUserId === user.id && (
                                 <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-violet-300 pointer-events-none" />
+                              )}
+                              {tierSyncStatus[user.id] && tierSyncStatus[user.id] !== "syncing" && (
+                                <span
+                                  title={tierSyncMessage[user.id] || ""}
+                                  className={cn(
+                                    "absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full text-[8px]",
+                                    tierSyncStatus[user.id] === "success" && "bg-green-500 text-white",
+                                    tierSyncStatus[user.id] === "skipped" && "bg-amber-500 text-white",
+                                    tierSyncStatus[user.id] === "error" && "bg-red-500 text-white"
+                                  )}
+                                >
+                                  {tierSyncStatus[user.id] === "success" ? "✓" : tierSyncStatus[user.id] === "skipped" ? "!" : "✗"}
+                                </span>
                               )}
                             </div>
                           <button
@@ -906,26 +940,29 @@ export default function AdminDashboard() {
                       onChange={(e) => setEditModal((m) => m && { ...m, tier: e.target.value })}
                       className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
                     >
+                      <option value="FREE">FREE</option>
                       <option value="ROOKIE">ROOKIE (LVL 1)</option>
                       <option value="GRINDER">GRINDER (LVL 10+)</option>
-                      <option value="VETERAN">VETERAN (LVL 25+)</option>
                       <option value="LEGEND">LEGEND (LVL 50+)</option>
-                      <option value="PREMIUM">PREMIUM PASS</option>
+                      <option value="PREMIUM">PREMIUM PASS (VIP)</option>
+                      <option value="GOLD">GOLD</option>
                     </select>
                     {tierSyncStatus[editModal.user.id] && (
                       <div className={cn(
                         "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
                         tierSyncStatus[editModal.user.id] === "syncing" && "bg-blue-500/10 text-blue-400",
                         tierSyncStatus[editModal.user.id] === "success" && "bg-green-500/10 text-green-400",
+                        tierSyncStatus[editModal.user.id] === "skipped" && "bg-amber-500/10 text-amber-400",
                         tierSyncStatus[editModal.user.id] === "error" && "bg-red-500/10 text-red-400"
                       )}>
                         {tierSyncStatus[editModal.user.id] === "syncing" && <Loader2 size={13} className="animate-spin" />}
                         {tierSyncStatus[editModal.user.id] === "success" && <Check size={13} />}
+                        {tierSyncStatus[editModal.user.id] === "skipped" && <Activity size={13} />}
                         {tierSyncStatus[editModal.user.id] === "error" && <X size={13} />}
                         <span>
-                          {tierSyncStatus[editModal.user.id] === "syncing" && "Synkar med Discord..."}
-                          {tierSyncStatus[editModal.user.id] === "success" && "Synkad! Discord-roll uppdaterad"}
-                          {tierSyncStatus[editModal.user.id] === "error" && "Sync misslyckades - Discord API fel"}
+                          {tierSyncMessage[editModal.user.id] || (
+                            tierSyncStatus[editModal.user.id] === "syncing" ? "Synkar med Discord..." : ""
+                          )}
                         </span>
                       </div>
                     )}

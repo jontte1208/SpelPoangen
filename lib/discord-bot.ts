@@ -188,28 +188,34 @@ export async function syncLevelRoles(discordId: string, level: number): Promise<
 
 // ─── Role sync ─────────────────────────────────────────────────────────────────
 
+/** Resolve a non-empty env var (treats "" as missing). */
+function env(key: string): string | undefined {
+  const v = process.env[key];
+  return v && v.trim() ? v.trim() : undefined;
+}
+
 function getTierRoleId(tier: string): string | undefined {
   const map: Record<string, string | undefined> = {
-    ROOKIE:   process.env.DISCORD_LEVEL_1_ROLE_ID,
-    GRINDER:  process.env.DISCORD_LEVEL_10_ROLE_ID,
-    VETERAN:  process.env.DISCORD_LEVEL_25_ROLE_ID,
-    LEGEND:   process.env.DISCORD_LEVEL_50_ROLE_ID,
-    PREMIUM:  process.env.DISCORD_PREMIUM_ROLE_ID ?? process.env.DISCORD_VIP_ROLE_ID,
-    GOLD:     process.env.DISCORD_GOLD_ROLE_ID,
-    FREE:     process.env.DISCORD_FREE_ROLE_ID,
+    ROOKIE:   env("DISCORD_ROOKIE_ROLE_ID")  ?? env("DISCORD_LEVEL_1_ROLE_ID"),
+    GRINDER:  env("DISCORD_GRINDER_ROLE_ID") ?? env("DISCORD_LEVEL_10_ROLE_ID"),
+    VETERAN:  env("DISCORD_LEVEL_25_ROLE_ID"),
+    LEGEND:   env("DISCORD_LEGEND_ROLE_ID")  ?? env("DISCORD_LEVEL_50_ROLE_ID"),
+    PREMIUM:  env("DISCORD_PREMIUM_ROLE_ID") ?? env("DISCORD_VIP_ROLE_ID"),
+    GOLD:     env("DISCORD_GOLD_ROLE_ID"),
+    FREE:     env("DISCORD_FREE_ROLE_ID"),
   };
   return map[tier];
 }
 
 function getAllTierRoleIds(): string[] {
   return [
-    process.env.DISCORD_LEVEL_1_ROLE_ID,
-    process.env.DISCORD_LEVEL_10_ROLE_ID,
-    process.env.DISCORD_LEVEL_25_ROLE_ID,
-    process.env.DISCORD_LEVEL_50_ROLE_ID,
-    process.env.DISCORD_PREMIUM_ROLE_ID ?? process.env.DISCORD_VIP_ROLE_ID,
-    process.env.DISCORD_GOLD_ROLE_ID,
-    process.env.DISCORD_FREE_ROLE_ID,
+    env("DISCORD_ROOKIE_ROLE_ID")  ?? env("DISCORD_LEVEL_1_ROLE_ID"),
+    env("DISCORD_GRINDER_ROLE_ID") ?? env("DISCORD_LEVEL_10_ROLE_ID"),
+    env("DISCORD_LEVEL_25_ROLE_ID"),
+    env("DISCORD_LEGEND_ROLE_ID")  ?? env("DISCORD_LEVEL_50_ROLE_ID"),
+    env("DISCORD_PREMIUM_ROLE_ID") ?? env("DISCORD_VIP_ROLE_ID"),
+    env("DISCORD_GOLD_ROLE_ID"),
+    env("DISCORD_FREE_ROLE_ID"),
   ].filter(Boolean) as string[];
 }
 
