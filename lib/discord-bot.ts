@@ -161,16 +161,10 @@ export async function updateLeaderboardMessage(
 }
 
 // ─── Level roles ───────────────────────────────────────────────────────────────
-// Milestones: reaching or passing a level awards the role permanently (cumulative).
-// Configure one Discord role per milestone in env vars.
+// Milestones are defined in lib/level-milestones.ts (shared with UI).
+// Roles are cumulative — reaching level 25 keeps level 1 and 10 roles.
 
-const LEVEL_MILESTONES: { level: number; envKey: string }[] = [
-  { level: 5,   envKey: "DISCORD_LEVEL_5_ROLE_ID" },
-  { level: 10,  envKey: "DISCORD_LEVEL_10_ROLE_ID" },
-  { level: 20,  envKey: "DISCORD_LEVEL_20_ROLE_ID" },
-  { level: 50,  envKey: "DISCORD_LEVEL_50_ROLE_ID" },
-  { level: 100, envKey: "DISCORD_LEVEL_100_ROLE_ID" },
-];
+import { LEVEL_MILESTONES } from "@/lib/level-milestones";
 
 export async function syncLevelRoles(discordId: string, level: number): Promise<void> {
   const guildId = process.env.DISCORD_GUILD_ID;
@@ -178,11 +172,10 @@ export async function syncLevelRoles(discordId: string, level: number): Promise<
   if (!guildId || !botToken || !discordId) return;
 
   await Promise.all(
-    LEVEL_MILESTONES.map(async ({ level: threshold, envKey }) => {
-      const roleId = process.env[envKey];
+    LEVEL_MILESTONES.map(async ({ level: threshold, discordEnvKey }) => {
+      const roleId = process.env[discordEnvKey];
       if (!roleId) return;
       if (level >= threshold) {
-        // Award role if not already held
         await fetch(`${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${roleId}`, {
           method: "PUT",
           headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },

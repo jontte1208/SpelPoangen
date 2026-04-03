@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { getLevelMilestone } from "@/lib/level-milestones";
 import AdminQuestPanel from "./AdminQuestPanel";
 
 type AdminUser = {
@@ -712,7 +713,19 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-slate-300">{user.level}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono text-slate-300">{user.level}</span>
+                          {(() => {
+                            const m = getLevelMilestone(user.level);
+                            return (
+                              <span className={cn("rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] w-fit", m.textColor, m.bgColor, m.borderColor)}>
+                                {m.emoji} {m.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </td>
                       <td className="px-5 py-3.5 font-mono text-slate-300">{user.xp.toLocaleString()}</td>
                       <td className="px-5 py-3.5 font-mono text-slate-300">{user.coins.toLocaleString()}</td>
                       <td className="px-5 py-3.5">
