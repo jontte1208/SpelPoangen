@@ -841,7 +841,14 @@ export default function AdminDashboard() {
                             </div>
                           )}
                           <div>
-                            <p className="font-medium text-white">{user.name ?? "Okänd"}</p>
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/profile/${user.id}`)}
+                              className="font-medium text-white transition-colors hover:text-neon-cyan"
+                              title="Gå till profil"
+                            >
+                              {user.name ?? "Okänd"}
+                            </button>
                             <div className="flex items-center gap-1.5">
                               <p className="text-[11px] text-slate-500">{user.discordId ?? "Ingen Discord ID"}</p>
                               {user.discordId ? (
@@ -900,6 +907,12 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => router.push(`/profile/${user.id}`)}
+                            className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10"
+                          >
+                            Profil
+                          </button>
                           <button
                             onClick={() => openDetailsModal(user)}
                             className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-semibold text-blue-300 transition-all hover:border-blue-500/40 hover:bg-blue-500/10"
