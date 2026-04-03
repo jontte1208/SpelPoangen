@@ -11,15 +11,16 @@ export async function GET() {
   }
 
   const posts = await prisma.forumPost.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     take: 50,
     select: {
       id: true,
       title: true,
       content: true,
       game: true,
+      pinned: true,
       createdAt: true,
-      author: { select: { id: true, name: true, xp: true, level: true, image: true } },
+      author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
     },
   });
 
@@ -56,8 +57,9 @@ export async function POST(request: Request) {
       title: true,
       content: true,
       game: true,
+      pinned: true,
       createdAt: true,
-      author: { select: { id: true, name: true, xp: true, level: true, image: true } },
+      author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
     },
   });
 

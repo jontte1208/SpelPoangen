@@ -239,6 +239,7 @@ model ForumPost {
   title     String
   content   String   @db.Text
   game      String?
+  pinned    Boolean  @default(false)
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
