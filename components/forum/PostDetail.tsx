@@ -42,7 +42,6 @@ function Avatar({ image, name, size = 28 }: { image: string | null; name: string
 
 export default function PostDetail({
   post: initialPost,
-  currentUserId,
   isAdmin,
 }: {
   post: Post;
