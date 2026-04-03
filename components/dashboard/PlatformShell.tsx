@@ -14,7 +14,7 @@ const navItems = [
   { href: "/dashboard", label: "Hem" },
   { href: "/products", label: "Produkter" },
   { href: "/quests", label: "Quests" },
-  { href: "/shop", label: "Butik" },
+  { href: "/forum", label: "Forum" },
   { href: "/leaderboard", label: "Topplista" },
   { href: "/premium", label: "Premium", premium: true },
 ];
