@@ -228,7 +228,7 @@ export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: s
       });
       if (!res.ok) {
         await res.json();
-        setError("Något gick fel. Kontrollera att titeln är minst 3 tecken och texten minst 10 tecken.");
+        setError("Något gick fel. Kontrollera att titeln och texten är minst 3 tecken.");
         return;
       }
       const newPost: Post = await res.json();

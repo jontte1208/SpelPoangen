@@ -29,7 +29,7 @@ export async function GET() {
 
 const createSchema = z.object({
   title: z.string().min(3).max(100),
-  content: z.string().min(10).max(2000),
+  content: z.string().min(3).max(2000),
   game: z.string().max(50).optional(),
 });
 
