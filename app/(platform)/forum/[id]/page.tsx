@@ -24,9 +24,11 @@ export default async function ForumPostPage({ params }: { params: { id: string }
 
   if (!post) notFound();
 
+  const serialized = { ...post, createdAt: post.createdAt.toISOString(), author: { ...post.author, role: post.author.role as string } };
+
   return (
     <PostDetail
-      post={post}
+      post={serialized}
       currentUserId={session.user.id}
       isAdmin={session.user.role === "ADMIN"}
     />
