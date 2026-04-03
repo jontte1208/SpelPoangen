@@ -71,6 +71,19 @@ type UserActivityItem = {
   createdAt: string;
 };
 
+type SortKey = "name" | "level" | "xp" | "coins" | "tier" | "status";
+type SortOrder = "asc" | "desc";
+
+type Toast = {
+  id: number;
+  message: string;
+  type: "success" | "error" | "info";
+};
+
+const TIER_ORDER: Record<string, number> = {
+  FREE: 0, ROOKIE: 1, GRINDER: 2, LEGEND: 3, PREMIUM: 4, GOLD: 5,
+};
+
 function StatCard({
   icon: Icon,
   label,
@@ -129,8 +142,28 @@ export default function AdminDashboard() {
   const [broadcastActive, setBroadcastActive] = useState(false);
   const [broadcastSaving, setBroadcastSaving] = useState(false);
   const [broadcastUpdatedAt, setBroadcastUpdatedAt] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("level");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [banConfirm, setBanConfirm] = useState<AdminUser | null>(null);
+  const toastIdRef = { current: 0 };
 
   const doubleXP = doubleXPTimer > 0;
+
+  function showToast(message: string, type: Toast["type"] = "info") {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev.slice(-4), { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortOrder("desc");
+    }
+  }
 
   function syncDoubleXPState(endsAt: string | null) {
     setDoubleXPEndsAt(endsAt);
@@ -218,7 +251,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       syncDoubleXPState(typeof data.endsAt === "string" ? data.endsAt : null);
     } else {
-      alert("Kunde inte uppdatera Double XP-eventet");
+      showToast("Kunde inte uppdatera Double XP-eventet", "error");
     }
 
     setDoubleXPUpdating(false);
@@ -238,7 +271,7 @@ export default function AdminDashboard() {
       setBroadcastActive(Boolean(data.isActive));
       setBroadcastUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : null);
     } else {
-      alert("Kunde inte publicera broadcast-meddelandet");
+      showToast("Kunde inte publicera broadcast-meddelandet", "error");
     }
 
     setBroadcastSaving(false);
@@ -254,7 +287,7 @@ export default function AdminDashboard() {
       setBroadcastMessage("");
       setBroadcastUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : null);
     } else {
-      alert("Kunde inte stänga av broadcast-meddelandet");
+      showToast("Kunde inte stänga av broadcast-meddelandet", "error");
     }
 
     setBroadcastSaving(false);
@@ -412,9 +445,9 @@ export default function AdminDashboard() {
     });
     if (res.ok) {
       const data = await res.json();
-      alert(`Nollställt ${data.deleted} quest-claims för vecka ${data.weekIndex}`);
+      showToast(`Nollställt ${data.deleted} quest-claims för vecka ${data.weekIndex}`, "success");
     } else {
-      alert("Kunde inte nollställa quest-claims");
+      showToast("Kunde inte nollställa quest-claims", "error");
     }
     setResettingQuests(false);
   }
@@ -527,6 +560,31 @@ export default function AdminDashboard() {
     return matchesSearch && matchesTier && matchesStatus;
   });
 
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case "name":
+        cmp = (a.name ?? "").localeCompare(b.name ?? "");
+        break;
+      case "level":
+        cmp = a.level - b.level;
+        break;
+      case "xp":
+        cmp = a.xp - b.xp;
+        break;
+      case "coins":
+        cmp = a.coins - b.coins;
+        break;
+      case "tier":
+        cmp = (TIER_ORDER[a.tier] ?? 0) - (TIER_ORDER[b.tier] ?? 0);
+        break;
+      case "status":
+        cmp = Number(a.isBanned) - Number(b.isBanned);
+        break;
+    }
+    return sortOrder === "asc" ? cmp : -cmp;
+  });
+
   return (
     <div className="min-h-screen bg-[#010b17] px-4 pb-12 pt-0 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -554,11 +612,32 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats row */}
-        <div className="mb-8 flex flex-wrap gap-3">
+        <div className="mb-4 flex flex-wrap gap-3">
           <StatCard icon={Users} label="Användare" value={users.length} color="bg-blue-500/20" />
           <StatCard icon={Star} label="Total XP" value={totalXP.toLocaleString()} color="bg-neon-cyan/20" />
           <StatCard icon={Coins} label="Aktiva" value={users.length - banned} color="bg-emerald-500/20" />
           <StatCard icon={Ban} label="Bannade" value={banned} color="bg-red-500/20" />
+        </div>
+
+        {/* Tier distribution */}
+        <div className="mb-8 rounded-2xl border border-white/5 bg-slate-900/50 px-5 py-3.5 backdrop-blur-sm">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Tier-fördelning</p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+            {(["FREE", "ROOKIE", "GRINDER", "LEGEND", "PREMIUM", "GOLD"] as const).map((tier) => {
+              const count = users.filter((u) => u.tier === tier).length;
+              const colors: Record<string, string> = {
+                FREE: "bg-slate-500", ROOKIE: "bg-blue-500", GRINDER: "bg-green-500",
+                LEGEND: "bg-amber-500", PREMIUM: "bg-purple-500", GOLD: "bg-yellow-500",
+              };
+              return (
+                <div key={tier} className="flex items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", colors[tier])} />
+                  <span className="text-[11px] text-slate-400">{tier}</span>
+                  <span className="font-mono text-[11px] font-semibold text-slate-200">{count}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Global Events */}
@@ -703,18 +782,37 @@ export default function AdminDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5 text-left">
-                    {["Användare", "Level", "XP", "Coins", "Tier", "Status", "Åtgärder"].map((h) => (
+                    {([
+                      ["Användare", "name"],
+                      ["Level", "level"],
+                      ["XP", "xp"],
+                      ["Coins", "coins"],
+                      ["Tier", "tier"],
+                      ["Status", "status"],
+                      ["Åtgärder", null],
+                    ] as [string, SortKey | null][]).map(([label, key]) => (
                       <th
-                        key={h}
-                        className="px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500"
+                        key={label}
+                        onClick={key ? () => toggleSort(key) : undefined}
+                        className={cn(
+                          "px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500",
+                          key && "cursor-pointer select-none transition-colors hover:text-slate-300"
+                        )}
                       >
-                        {h}
+                        <span className="inline-flex items-center gap-1">
+                          {label}
+                          {key && sortKey === key && (
+                            sortOrder === "asc"
+                              ? <ChevronUp size={11} className="text-neon-cyan" />
+                              : <ChevronDown size={11} className="text-neon-cyan" />
+                          )}
+                        </span>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user) => (
+                  {sortedUsers.map((user) => (
                     <tr
                       key={user.id}
                       className={cn(
@@ -842,7 +940,7 @@ export default function AdminDashboard() {
                               )}
                             </div>
                           <button
-                            onClick={() => toggleBan(user)}
+                            onClick={() => setBanConfirm(user)}
                             className={cn(
                               "rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all",
                               user.isBanned
@@ -1040,7 +1138,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.15 }}
-              className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#010f1e] p-6 shadow-2xl"
+              className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#010f1e] p-6 shadow-2xl"
             >
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -1234,6 +1332,91 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Ban Confirmation Modal */}
+      <AnimatePresence>
+        {banConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setBanConfirm(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-xs rounded-2xl border border-white/10 bg-[#010f1e] p-6 shadow-2xl"
+            >
+              <div className="mb-1 flex items-center gap-2 text-white">
+                {banConfirm.isBanned ? <CheckCircle size={18} className="text-emerald-400" /> : <Ban size={18} className="text-red-400" />}
+                <h3 className="font-semibold">
+                  {banConfirm.isBanned ? "Unbanna användare?" : "Banna användare?"}
+                </h3>
+              </div>
+              <p className="mb-5 text-xs text-slate-400">
+                {banConfirm.isBanned
+                  ? `Är du säker på att du vill unbanna ${banConfirm.name ?? "denna användare"}?`
+                  : `Är du säker på att du vill banna ${banConfirm.name ?? "denna användare"}? De förlorar åtkomst till plattformen.`}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setBanConfirm(null)}
+                  className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-400 hover:bg-white/5"
+                >
+                  Avbryt
+                </button>
+                <button
+                  onClick={async () => {
+                    const user = banConfirm;
+                    setBanConfirm(null);
+                    await toggleBan(user);
+                    showToast(
+                      user.isBanned ? `${user.name ?? "Användaren"} har unbannas` : `${user.name ?? "Användaren"} har bannats`,
+                      user.isBanned ? "success" : "info"
+                    );
+                  }}
+                  className={cn(
+                    "flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-all",
+                    banConfirm.isBanned
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                      : "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                  )}
+                >
+                  {banConfirm.isBanned ? "Unbanna" : "Banna"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast notifications */}
+      <div className="pointer-events-none fixed bottom-6 right-6 z-[70] flex flex-col items-end gap-2">
+        <AnimatePresence>
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 40 }}
+              className={cn(
+                "pointer-events-auto flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-lg backdrop-blur-md",
+                toast.type === "success" && "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+                toast.type === "error" && "border-red-500/30 bg-red-500/15 text-red-300",
+                toast.type === "info" && "border-blue-500/30 bg-blue-500/15 text-blue-300"
+              )}
+            >
+              {toast.type === "success" && <CheckCircle size={14} />}
+              {toast.type === "error" && <X size={14} />}
+              {toast.type === "info" && <Activity size={14} />}
+              {toast.message}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
