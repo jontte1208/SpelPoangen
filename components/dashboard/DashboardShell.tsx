@@ -6,7 +6,7 @@ import LootMarketSection from "@/components/market/LootMarketSection";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/types/user";
-import { Zap, ShoppingCart, Trophy, BadgeCheck, Flame, Crown, Medal } from "lucide-react";
+import { Zap, ShoppingCart, Trophy, Crown, Medal, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 const containerVariants: Variants = {
@@ -29,14 +29,14 @@ const itemVariants: Variants = {
   },
 };
 
-const activityFeed = [
-  { icon: BadgeCheck, color: "text-violet-400", bg: "bg-violet-400/10 border-violet-400/20", text: "jontte0067 låste precis upp en ny badge!", time: "Nu" },
-  { icon: ShoppingCart, color: "text-amber-300", bg: "bg-amber-400/10 border-amber-300/20", text: "NovaAim köpte SteelSeries Apex Pro", time: "1 min" },
-  { icon: Trophy, color: "text-neon-cyan", bg: "bg-neon-cyan/10 border-neon-cyan/20", text: "ShadowLoot nådde Level 5!", time: "3 min" },
-  { icon: Zap, color: "text-yellow-400", bg: "bg-yellow-400/10 border-yellow-400/20", text: "UserX tjänade 250 XP på Razer DeathAdder V3", time: "5 min" },
-  { icon: Flame, color: "text-orange-400", bg: "bg-orange-400/10 border-orange-400/20", text: "GrindKing håller en 7-dagars streak!", time: "8 min" },
-  { icon: ShoppingCart, color: "text-amber-300", bg: "bg-amber-400/10 border-amber-300/20", text: "ProGamer99 köpte HyperX Cloud III", time: "12 min" },
-];
+type ActivityType = "forum_post" | "quest_claim" | "affiliate_click" | "purchase";
+
+type LiveActivity = {
+  id: string;
+  type: ActivityType;
+  text: string;
+  createdAt: string;
+};
 
 const feedItemVariants: Variants = {
   hidden: { opacity: 0, x: -16 },
@@ -48,6 +48,60 @@ const feedItemVariants: Variants = {
 };
 
 function RecentActivity() {
+  const [activityFeed, setActivityFeed] = useState<LiveActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  function formatActivityTime(createdAt: string) {
+    const ts = new Date(createdAt).getTime();
+    if (Number.isNaN(ts)) return "-";
+
+    const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diffSec < 60) return "NU";
+
+    const minutes = Math.floor(diffSec / 60);
+    if (minutes < 60) return `${minutes} MIN`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} H`;
+
+    const days = Math.floor(hours / 24);
+    return `${days} D`;
+  }
+
+  function getActivityVisual(type: ActivityType) {
+    if (type === "forum_post") {
+      return { icon: Trophy, color: "text-neon-cyan", bg: "bg-neon-cyan/10 border-neon-cyan/20" };
+    }
+    if (type === "quest_claim") {
+      return { icon: CheckCircle2, color: "text-violet-400", bg: "bg-violet-400/10 border-violet-400/20" };
+    }
+    if (type === "purchase") {
+      return { icon: ShoppingCart, color: "text-amber-300", bg: "bg-amber-400/10 border-amber-300/20" };
+    }
+    return { icon: Zap, color: "text-yellow-400", bg: "bg-yellow-400/10 border-yellow-400/20" };
+  }
+
+  useEffect(() => {
+    async function fetchActivity() {
+      try {
+        const res = await fetch("/api/activity/recent?limit=8", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setActivityFeed(data);
+        }
+      } catch {
+        // Ignore polling errors to keep dashboard stable.
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchActivity();
+    const poll = setInterval(fetchActivity, 10000);
+    return () => clearInterval(poll);
+  }, []);
+
   return (
     <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 backdrop-blur-md">
       <div className="mb-4 flex items-center justify-between">
@@ -68,22 +122,33 @@ function RecentActivity() {
         animate="visible"
         className="space-y-2"
       >
-        {activityFeed.map((item, i) => (
+        {loading && activityFeed.length === 0 ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <li key={`activity-skeleton-${i}`} className="h-[50px] animate-pulse rounded-xl border border-white/5 bg-white/[0.03]" />
+          ))
+        ) : activityFeed.length === 0 ? (
+          <li className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-sm text-slate-400">
+            Ingen aktivitet ännu.
+          </li>
+        ) : activityFeed.map((item, i) => {
+          const visual = getActivityVisual(item.type);
+          return (
           <motion.li
-            key={i}
+            key={item.id}
             custom={i}
             variants={feedItemVariants}
             className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm"
           >
-            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${item.bg}`}>
-              <item.icon size={13} className={item.color} />
+            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${visual.bg}`}>
+              <visual.icon size={13} className={visual.color} />
             </div>
             <p className="min-w-0 flex-1 truncate text-sm text-slate-300">{item.text}</p>
             <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-slate-600">
-              {item.time}
+              {formatActivityTime(item.createdAt)}
             </span>
           </motion.li>
-        ))}
+          );
+        })}
       </motion.ul>
     </div>
   );
