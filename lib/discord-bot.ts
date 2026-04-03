@@ -248,48 +248,6 @@ export async function syncUserTierRole(
     );
   }
 
-  // ── Diagnostic: fetch guild roles to check hierarchy ──
-  try {
-    const rolesRes = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
-      headers: { Authorization: `Bot ${botToken}` },
-    });
-    if (rolesRes.ok) {
-      const roles = (await rolesRes.json()) as { id: string; name: string; position: number; managed: boolean }[];
-      const botMemberRes = await fetch(`${DISCORD_API}/users/@me`, {
-        headers: { Authorization: `Bot ${botToken}` },
-      });
-      const botUser = botMemberRes.ok ? (await botMemberRes.json()) as { id: string } : null;
-
-      const targetRole = roles.find((r) => r.id === targetRoleId);
-      // Find the bot's highest role by looking at guild member
-      let botHighestPosition = -1;
-      let botRoleName = "unknown";
-      if (botUser) {
-        const memberRes = await fetch(`${DISCORD_API}/guilds/${guildId}/members/${botUser.id}`, {
-          headers: { Authorization: `Bot ${botToken}` },
-        });
-        if (memberRes.ok) {
-          const member = (await memberRes.json()) as { roles: string[] };
-          const botRoles = roles.filter((r) => member.roles.includes(r.id));
-          const highest = botRoles.sort((a, b) => b.position - a.position)[0];
-          if (highest) {
-            botHighestPosition = highest.position;
-            botRoleName = highest.name;
-          }
-        }
-      }
-
-      console.info("[discord-bot] ROLE HIERARCHY DEBUG", {
-        targetRole: targetRole ? { name: targetRole.name, position: targetRole.position, managed: targetRole.managed } : "NOT FOUND",
-        botHighestRole: { name: botRoleName, position: botHighestPosition },
-        canAssign: targetRole ? botHighestPosition > targetRole.position : false,
-        allGuildRoles: roles.sort((a, b) => b.position - a.position).map((r) => `${r.position}: ${r.name} (${r.id})${r.managed ? " [managed]" : ""}`),
-      });
-    }
-  } catch (diagErr) {
-    console.warn("[discord-bot] hierarchy diagnostic failed:", diagErr);
-  }
-
   // Remove all tier roles except the target
   const removeResults = await Promise.allSettled(
     allRoleIds
