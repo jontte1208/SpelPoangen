@@ -10,9 +10,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const body = await request.json();
-  const data: { pinned?: boolean; commentsEnabled?: boolean } = {};
+  const data: {
+    pinned?: boolean;
+    commentsEnabled?: boolean;
+    title?: string;
+    content?: string;
+    game?: string | null;
+  } = {};
+
   if (typeof body.pinned === "boolean") data.pinned = body.pinned;
   if (typeof body.commentsEnabled === "boolean") data.commentsEnabled = body.commentsEnabled;
+  if (typeof body.title === "string" && body.title.trim().length >= 3) data.title = body.title.trim();
+  if (typeof body.content === "string" && body.content.trim().length >= 3) data.content = body.content.trim();
+  if ("game" in body) data.game = body.game || null;
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
@@ -20,7 +31,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const post = await prisma.forumPost.update({
     where: { id: params.id },
     data,
-    select: { id: true, pinned: true, commentsEnabled: true },
+    select: {
+      id: true, title: true, content: true, game: true,
+      pinned: true, commentsEnabled: true,
+    },
   });
 
   return NextResponse.json(post);

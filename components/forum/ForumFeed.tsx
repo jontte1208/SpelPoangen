@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2, MessageCircle, Flame, Eye } from "lucide-react";
+import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2, MessageCircle, Flame, Eye, Pencil, Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Author = { id: string; name: string | null; xp: number; level: number; image: string | null; role: string };
@@ -60,15 +60,21 @@ function PostCard({
   isAdmin,
   onPin,
   onDelete,
+  onEdit,
 }: {
   post: Post;
   currentUserId: string;
   isAdmin: boolean;
   onPin: (id: string, pinned: boolean) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, updates: Partial<Post>) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(post.title);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editGame, setEditGame] = useState(post.game ?? "");
   const isLong = post.content.length > 200;
   const isPinned = post.pinned;
   const router = useRouter();
@@ -89,6 +95,21 @@ function PostCard({
     setActionLoading(true);
     await fetch(`/api/forum/${post.id}`, { method: "DELETE" });
     onDelete(post.id);
+  }
+
+  async function handleSaveEdit() {
+    setActionLoading(true);
+    const res = await fetch(`/api/forum/${post.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editTitle, content: editContent, game: editGame || null }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      onEdit(post.id, updated);
+      setEditing(false);
+    }
+    setActionLoading(false);
   }
 
   // Accent line color: amber for pinned, neon-cyan for game posts, subtle for rest
@@ -135,6 +156,13 @@ function PostCard({
               onClick={(e) => e.stopPropagation()}
             >
               <button
+                onClick={() => { setEditing(true); setEditTitle(post.title); setEditContent(post.content); setEditGame(post.game ?? ""); }}
+                title="Redigera inlägg"
+                className="rounded-lg border border-white/10 p-1.5 text-slate-500 transition-colors hover:border-neon-cyan/30 hover:text-neon-cyan"
+              >
+                <Pencil size={13} />
+              </button>
+              <button
                 onClick={handlePin}
                 disabled={actionLoading}
                 title={isPinned ? "Avfäst" : "Fäst överst"}
@@ -175,36 +203,78 @@ function PostCard({
         </div>
       )}
 
-      {/* Game tag */}
-      {post.game && (
-        <div className="mb-1.5">
-          <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
-            <Gamepad2 size={10} />
-            {post.game}
-          </span>
+      {editing ? (
+        /* Inline edit form */
+        <div className="space-y-2 mt-1" onClick={(e) => e.stopPropagation()}>
+          <input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            className="w-full rounded-xl border border-neon-cyan/30 bg-slate-800/60 px-3 py-2 text-sm font-bold text-white outline-none"
+          />
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows={4}
+            className="w-full resize-none rounded-xl border border-neon-cyan/30 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 outline-none"
+          />
+          <select
+            value={editGame}
+            onChange={(e) => setEditGame(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-3 py-2 text-sm text-slate-300 outline-none"
+          >
+            <option value="">Inget spel</option>
+            {GAMES.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveEdit}
+              disabled={actionLoading}
+              className="flex items-center gap-1.5 rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1.5 text-xs font-semibold text-neon-cyan hover:bg-neon-cyan/20 disabled:opacity-50 transition-colors"
+            >
+              <Check size={12} /> Spara
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              <X size={12} /> Avbryt
+            </button>
+          </div>
         </div>
-      )}
+      ) : (
+        <>
+          {/* Game tag */}
+          {post.game && (
+            <div className="mb-1.5">
+              <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
+                <Gamepad2 size={10} />
+                {post.game}
+              </span>
+            </div>
+          )}
 
-      {/* Title */}
-      <h3 className={cn("text-lg font-bold leading-snug", isPinned ? "text-amber-50" : "text-white")}>
-        {post.title}
-      </h3>
+          {/* Title */}
+          <h3 className={cn("text-lg font-bold leading-snug", isPinned ? "text-amber-50" : "text-white")}>
+            {post.title}
+          </h3>
 
-      {/* Body */}
-      <p className={cn(
-        "mt-1.5 text-sm leading-relaxed",
-        isPinned ? "text-amber-100/60" : "text-slate-400",
-        !expanded && isLong && "line-clamp-3"
-      )}>
-        {post.content}
-      </p>
-      {isLong && (
-        <button
-          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-          className="mt-1 flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-        >
-          {expanded ? <><ChevronUp size={12} /> Visa mindre</> : <><ChevronDown size={12} /> Visa mer</>}
-        </button>
+          {/* Body */}
+          <p className={cn(
+            "mt-1.5 text-sm leading-relaxed",
+            isPinned ? "text-amber-100/60" : "text-slate-400",
+            !expanded && isLong && "line-clamp-3"
+          )}>
+            {post.content}
+          </p>
+          {isLong && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+              className="mt-1 flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              {expanded ? <><ChevronUp size={12} /> Visa mindre</> : <><ChevronDown size={12} /> Visa mer</>}
+            </button>
+          )}
+        </>
       )}
 
       {/* Interaction row */}
@@ -259,6 +329,10 @@ export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: s
     setPosts((prev) => prev.filter((p) => p.id !== id));
   }
 
+  function handleEdit(id: string, updates: Partial<Post>) {
+    setPosts((prev) => prev.map((p) => p.id === id ? { ...p, ...updates } : p));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -291,7 +365,10 @@ export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: s
 
   const visiblePosts = activeTab === null
     ? posts
-    : posts.filter((p) => p.game === activeTab);
+    : [
+        ...posts.filter((p) => p.pinned),
+        ...posts.filter((p) => !p.pinned && p.game === activeTab),
+      ];
 
   return (
     <div className="space-y-4">
@@ -395,6 +472,7 @@ export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: s
             isAdmin={isAdmin}
             onPin={handlePin}
             onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ))
       )}
