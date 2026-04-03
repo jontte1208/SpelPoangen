@@ -225,31 +225,71 @@ export async function syncUserTierRole(
 ): Promise<void> {
   const guildId = process.env.DISCORD_GUILD_ID;
   const botToken = process.env.DISCORD_BOT_TOKEN;
-  if (!guildId || !botToken || !discordId) return;
+  if (!guildId || !botToken || !discordId) {
+    throw new Error(
+      `Discord sync saknar konfiguration: ${!guildId ? "GUILD_ID" : ""} ${!botToken ? "BOT_TOKEN" : ""} ${!discordId ? "discordId" : ""}`.trim()
+    );
+  }
 
   const targetRoleId = getTierRoleId(tier);
   const allRoleIds = getAllTierRoleIds();
 
-  // Remove all tier roles first, then add the correct one
-  await Promise.all(
+  console.info("[discord-bot] syncUserTierRole", {
+    tier,
+    targetRoleId: targetRoleId ?? "NONE",
+    allRoleIds,
+    discordId,
+    guildId,
+  });
+
+  if (!targetRoleId) {
+    throw new Error(
+      `Ingen Discord-roll hittad för tier "${tier}". Kontrollera env-variabler (t.ex. DISCORD_LEGEND_ROLE_ID eller DISCORD_LEVEL_50_ROLE_ID).`
+    );
+  }
+
+  // Remove all tier roles except the target
+  const removeResults = await Promise.allSettled(
     allRoleIds
       .filter((id) => id !== targetRoleId)
-      .map((id) =>
-        fetch(`${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${id}`, {
+      .map(async (id) => {
+        const res = await fetch(`${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bot ${botToken}` },
-        }).catch(() => {})
-      )
+        });
+        // 204 = removed, 404 = already gone — both fine
+        if (!res.ok && res.status !== 204 && res.status !== 404) {
+          const body = await res.text().catch(() => "");
+          console.warn(`[discord-bot] role remove failed (${res.status}): roleId=${id}`, body.slice(0, 200));
+        }
+      })
   );
 
-  if (targetRoleId) {
-    await fetch(
-      `${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${targetRoleId}`,
-      {
-        method: "PUT",
-        headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
-        body: "{}",
-      }
-    ).catch(() => {});
+  // Log any remove failures but don't block
+  for (const r of removeResults) {
+    if (r.status === "rejected") {
+      console.warn("[discord-bot] role remove rejected:", r.reason);
+    }
   }
+
+  // Add the target role — this MUST succeed
+  const addRes = await fetch(
+    `${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${targetRoleId}`,
+    {
+      method: "PUT",
+      headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+      body: "{}",
+    }
+  );
+
+  if (!addRes.ok && addRes.status !== 204) {
+    const body = await addRes.text().catch(() => "");
+    const parsed = (() => { try { return JSON.parse(body); } catch { return null; } })();
+    const discordMessage = parsed?.message ?? body.slice(0, 300);
+    throw new Error(
+      `Discord API ${addRes.status}: ${discordMessage} (roleId=${targetRoleId}, tier=${tier})`
+    );
+  }
+
+  console.info("[discord-bot] syncUserTierRole completed", { tier, targetRoleId, discordId });
 }
