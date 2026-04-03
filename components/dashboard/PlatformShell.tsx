@@ -144,13 +144,6 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
     <div className="min-h-screen bg-[#020617] px-4 pb-8 pt-0 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="sticky top-0 z-50 mb-6 rounded-b-2xl border border-white/10 bg-slate-900/65 px-4 py-3 backdrop-blur-md">
-          {broadcastActive && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-2 text-fuchsia-100 shadow-[0_0_20px_rgba(217,70,239,0.25)]">
-              <Megaphone size={14} className="shrink-0 text-fuchsia-200" />
-              <p className="text-xs font-semibold tracking-[0.02em]">{broadcastMessage}</p>
-            </div>
-          )}
-
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="font-display text-base font-semibold tracking-[0.34em] text-neon-cyan sm:text-lg">
@@ -342,6 +335,24 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
           </div>
 
         </header>
+
+        {broadcastActive && (
+          <section className="mb-7 mt-3 rounded-2xl border border-fuchsia-300/35 bg-[linear-gradient(120deg,rgba(192,38,211,0.16),rgba(139,92,246,0.12))] px-5 py-4 shadow-[0_0_28px_rgba(217,70,239,0.28)]">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-fuchsia-200/40 bg-fuchsia-300/15">
+                <Megaphone size={18} className="text-fuchsia-100" />
+              </span>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-fuchsia-100/90">
+                  Global Announcement
+                </p>
+                <p className="mt-1 text-base font-semibold leading-relaxed text-fuchsia-50 sm:text-lg">
+                  {broadcastMessage}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <motion.div
           key={pathname}
