@@ -127,29 +127,30 @@ export default function PostDetail({
           ? "border-amber-500/50 bg-amber-950/20 shadow-[0_0_28px_rgba(245,158,11,0.12)]"
           : "border-white/8 bg-slate-900/50"
       )}>
-        {post.pinned && (
-          <div className="flex items-center gap-2 mb-3">
-            <Pin size={11} className="text-amber-400" />
-            <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400">
-              Officiellt
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {post.game && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
-                <Gamepad2 size={10} /> {post.game}
-              </span>
-            )}
+        {/* Author row — top */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <Avatar image={post.author.image} name={post.author.name} size={post.pinned ? 44 : 36} />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className={cn("font-semibold text-base", post.pinned ? "text-amber-100" : "text-white")}>
+                  {post.author.name ?? "Okänd"}
+                </p>
+                {post.author.role === "ADMIN" && (
+                  <span className="inline-flex items-center rounded border border-neon-cyan/40 bg-neon-cyan/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-widest text-neon-cyan">
+                    Owner
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500">Lv {post.author.level} · {post.author.xp} XP · {timeAgo(post.createdAt)}</p>
+            </div>
           </div>
           {isAdmin && (
             <button
               onClick={handleToggleComments}
               title={post.commentsEnabled ? "Stäng av kommentarer" : "Aktivera kommentarer"}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors",
+                "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors shrink-0",
                 post.commentsEnabled
                   ? "border-white/10 text-slate-400 hover:border-red-500/30 hover:text-red-400"
                   : "border-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/5"
@@ -160,27 +161,30 @@ export default function PostDetail({
           )}
         </div>
 
+        {/* Pinned badge */}
+        {post.pinned && (
+          <div className="flex items-center gap-2 mb-3">
+            <Pin size={11} className="text-amber-400" />
+            <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400">
+              Officiellt
+            </span>
+          </div>
+        )}
+
+        {post.game && (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
+              <Gamepad2 size={10} /> {post.game}
+            </span>
+          </div>
+        )}
+
         <h1 className={cn("text-xl font-bold mb-3", post.pinned ? "text-amber-50" : "text-white")}>
           {post.title}
         </h1>
         <p className={cn("text-sm whitespace-pre-wrap leading-relaxed", post.pinned ? "text-amber-100/70" : "text-slate-300")}>
           {post.content}
         </p>
-
-        <div className={cn("mt-4 flex items-center gap-2.5 border-t pt-4", post.pinned ? "border-amber-500/20" : "border-white/5")}>
-          <Avatar image={post.author.image} name={post.author.name} size={32} />
-          <div>
-            <p className={cn("text-sm font-medium", post.pinned ? "text-amber-200" : "text-white")}>
-              {post.author.name ?? "Okänd"}
-              {post.author.role === "ADMIN" && (
-                <span className="ml-2 inline-flex items-center rounded border border-neon-cyan/40 bg-neon-cyan/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-widest text-neon-cyan">
-                  Owner
-                </span>
-              )}
-            </p>
-            <p className="text-[11px] text-slate-500">Lv {post.author.level} · {post.author.xp} XP · {timeAgo(post.createdAt)}</p>
-          </div>
-        </div>
       </div>
 
       {/* Comments section */}
