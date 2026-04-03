@@ -77,6 +77,13 @@ enum QuestType {
   CLAN
 }
 
+enum QuestCategory {
+  FORUM
+  SHOP
+  STREAK
+  SOCIAL
+}
+
 enum RewardType {
   CURRENCY
   ITEM
@@ -227,14 +234,18 @@ model Order {
 }
 
 model Quest {
-  id          String    @id @default(cuid())
+  id          String        @id @default(cuid())
   title       String
   description String
-  rewardXP    Int       @default(0)
-  rewardCoins Int       @default(0)
-  type        QuestType @default(ONETIME)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  rewardXP    Int           @default(0)
+  rewardCoins Int           @default(0)
+  goal        Int           @default(1)
+  type        QuestType     @default(ONETIME)
+  category    QuestCategory @default(FORUM)
+  imageUrl    String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   userQuests UserQuest[]
 }

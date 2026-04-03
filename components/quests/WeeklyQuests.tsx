@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Users, UserPlus, ShoppingBag, MessageSquare, Gamepad2, Headphones, Trophy, Zap } from "lucide-react";
+import { Users, ShoppingBag, MessageSquare, Gamepad2, Trophy, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import LevelUpModal from "./LevelUpModal";
 
@@ -17,19 +17,18 @@ type QuestView = {
   xp: number;
   goal: number;
   image: string;
+  category: string;
   progress: number;
   claimed: boolean;
 };
 
-// ─── Icon mapping ─────────────────────────────────────────────────────────────
+// ─── Icon mapping by category ─────────────────────────────────────────────
 
-const QUEST_ICONS: Record<string, LucideIcon> = {
-  "forum-warrior": MessageSquare,
-  "social-gaming": UserPlus,
-  "loot-scout": ShoppingBag,
-  "squad-up": Users,
-  "gear-check": Headphones,
-  "grind-session": Gamepad2,
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  FORUM: MessageSquare,
+  SHOP: ShoppingBag,
+  STREAK: Gamepad2,
+  SOCIAL: Users,
 };
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
@@ -61,7 +60,7 @@ function QuestCard({ quest, onClaim, claiming }: {
 }) {
   const pct = Math.min((quest.progress / quest.goal) * 100, 100);
   const complete = quest.progress >= quest.goal;
-  const Icon = QUEST_ICONS[quest.id] ?? Zap;
+  const Icon = CATEGORY_ICONS[quest.category] ?? Zap;
 
   return (
     <div className={cn(

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import AdminQuestPanel from "./AdminQuestPanel";
 
 type AdminUser = {
   id: string;
@@ -339,6 +340,11 @@ export default function AdminDashboard() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Quest Management */}
+        <div className="mb-8">
+          <AdminQuestPanel />
         </div>
 
         {/* Users table */}
