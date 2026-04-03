@@ -250,6 +250,7 @@ export default function AdminDashboard() {
     if (res.ok) {
       const data = await res.json();
       setBroadcastActive(Boolean(data.isActive));
+      setBroadcastMessage("");
       setBroadcastUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : null);
     } else {
       alert("Kunde inte stänga av broadcast-meddelandet");

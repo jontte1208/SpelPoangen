@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const BROADCAST_KEY = "MAIN";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
