@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2 } from "lucide-react";
+import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2, MessageSquare } from "lucide-react";
+import Link from "next/link";
 
 type Author = { id: string; name: string | null; xp: number; level: number; image: string | null; role: string };
-type Post = { id: string; title: string; content: string; game: string | null; pinned: boolean; createdAt: string; author: Author };
+type Post = { id: string; title: string; content: string; game: string | null; pinned: boolean; commentsEnabled: boolean; createdAt: string; author: Author };
 
 const GAMES = ["Valorant", "CS2", "Fortnite", "Apex Legends", "League of Legends", "Minecraft", "Rocket League", "Annat"];
 
@@ -166,13 +167,22 @@ function PostCard({
         </button>
       )}
 
-      <div className={cn("mt-3 flex items-center gap-2 border-t pt-3", isPinned ? "border-amber-500/20" : "border-white/5")}>
-        <AuthorAvatar author={post.author} pinned={isPinned} />
-        <span className={cn("text-xs", isPinned ? "text-amber-200/80" : "text-slate-400")}>
-          {post.author.name ?? "Okänd"}
-        </span>
-        <span className="text-[10px] text-slate-600">·</span>
-        <span className="text-[10px] text-slate-500">Lv {post.author.level} · {post.author.xp} XP</span>
+      <div className={cn("mt-3 flex items-center justify-between gap-2 border-t pt-3", isPinned ? "border-amber-500/20" : "border-white/5")}>
+        <div className="flex items-center gap-2">
+          <AuthorAvatar author={post.author} pinned={isPinned} />
+          <span className={cn("text-xs", isPinned ? "text-amber-200/80" : "text-slate-400")}>
+            {post.author.name ?? "Okänd"}
+          </span>
+          <span className="text-[10px] text-slate-600">·</span>
+          <span className="text-[10px] text-slate-500">Lv {post.author.level} · {post.author.xp} XP</span>
+        </div>
+        <Link
+          href={`/forum/${post.id}`}
+          className="flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1.5 text-[11px] text-slate-500 transition-colors hover:border-neon-cyan/20 hover:text-neon-cyan"
+        >
+          <MessageSquare size={11} />
+          {post.commentsEnabled ? "Kommentera" : "Visa"}
+        </Link>
       </div>
     </div>
   );

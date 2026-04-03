@@ -133,6 +133,7 @@ model User {
   purchases       Purchase[]
   orders          Order[]
   forumPosts      ForumPost[]
+  forumComments   ForumComment[]
 }
 
 model Product {
@@ -235,15 +236,28 @@ model UserQuest {
 }
 
 model ForumPost {
+  id              String         @id @default(cuid())
+  title           String
+  content         String         @db.Text
+  game            String?
+  pinned          Boolean        @default(false)
+  commentsEnabled Boolean        @default(true)
+  authorId        String
+  author          User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments        ForumComment[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model ForumComment {
   id        String   @id @default(cuid())
-  title     String
   content   String   @db.Text
-  game      String?
-  pinned    Boolean  @default(false)
+  approved  Boolean  @default(false)
+  postId    String
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model BattlePass {
