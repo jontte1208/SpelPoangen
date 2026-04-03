@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendForumPostEmbed } from "@/lib/discord-bot";
 import { z } from "zod";
 
 export async function GET() {
@@ -73,6 +74,15 @@ export async function POST(request: Request) {
       author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
     },
   });
+
+  // Discord notification — fire and forget
+  sendForumPostEmbed({
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    game: post.game,
+    author: post.author,
+  }).catch(() => {});
 
   return NextResponse.json(
     { ...post, replyCount: 0, likeCount: 0, likedByMe: false, commentsEnabled: true },

@@ -1,0 +1,166 @@
+// Discord REST API helpers — fire-and-forget notifications + role sync.
+// All functions catch their own errors so they never break the calling request.
+
+const DISCORD_API = "https://discord.com/api/v10";
+
+function botHeaders() {
+  return {
+    Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function sendToChannel(channelId: string, payload: object): Promise<void> {
+  if (!process.env.DISCORD_BOT_TOKEN || !channelId) return;
+  try {
+    const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+      method: "POST",
+      headers: botHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      console.error("[discord-bot] channel send failed:", await res.text());
+    }
+  } catch (e) {
+    console.error("[discord-bot] network error:", e);
+  }
+}
+
+// ─── Notifications ─────────────────────────────────────────────────────────────
+
+export async function sendForumPostEmbed(post: {
+  id: string;
+  title: string;
+  content: string;
+  game: string | null;
+  author: { name: string | null; image: string | null };
+}): Promise<void> {
+  const channelId = process.env.DISCORD_FORUM_CHANNEL_ID;
+  if (!channelId) return;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spelpoangen.se";
+  const preview = post.content.length > 250 ? post.content.slice(0, 250) + "…" : post.content;
+  const gameLabel = post.game ?? "Övrigt";
+
+  await sendToChannel(channelId, {
+    embeds: [
+      {
+        title: post.title,
+        description: preview,
+        url: `${appUrl}/forum/${post.id}`,
+        color: 0x00f5ff,
+        author: {
+          name: post.author.name ?? "Anonym",
+          ...(post.author.image ? { icon_url: post.author.image } : {}),
+        },
+        footer: { text: `📌 ${gameLabel}  •  SpelPoängen Forum` },
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+}
+
+export async function sendLevelUpAnnouncement(
+  username: string,
+  newLevel: number,
+  discordId: string | null | undefined
+): Promise<void> {
+  const channelId = process.env.DISCORD_ANNOUNCEMENTS_CHANNEL_ID;
+  if (!channelId) return;
+
+  const who = discordId ? `<@${discordId}>` : `**${username}**`;
+  await sendToChannel(channelId, {
+    content: `🏆 GG! ${who} nådde precis **Level ${newLevel}**! Håll streaken vid liv 🔥`,
+  });
+}
+
+export async function sendLootDropEmbed(item: {
+  name: string;
+  description: string;
+  priceSek: number;
+  imageUrl?: string | null;
+}): Promise<void> {
+  const channelId =
+    process.env.DISCORD_LOOT_CHANNEL_ID ?? process.env.DISCORD_ANNOUNCEMENTS_CHANNEL_ID;
+  if (!channelId) return;
+
+  const alertRoleId = process.env.DISCORD_LOOT_ALERT_ROLE_ID;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spelpoangen.se";
+  const rolePing = alertRoleId ? `<@&${alertRoleId}> ` : "";
+
+  await sendToChannel(channelId, {
+    content: `${rolePing}🎁 **Ny Loot Drop är live!**`,
+    embeds: [
+      {
+        title: item.name,
+        description: item.description.slice(0, 300),
+        url: `${appUrl}/shop`,
+        color: 0xfacc15,
+        ...(item.imageUrl ? { thumbnail: { url: item.imageUrl } } : {}),
+        fields: [{ name: "Pris", value: `${item.priceSek.toFixed(0)} kr`, inline: true }],
+        footer: { text: "SpelPoängen Butik" },
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+}
+
+// ─── Role sync ─────────────────────────────────────────────────────────────────
+
+function getTierRoleId(tier: string): string | undefined {
+  const map: Record<string, string | undefined> = {
+    ROOKIE: process.env.DISCORD_ROOKIE_ROLE_ID,
+    GRINDER: process.env.DISCORD_GRINDER_ROLE_ID,
+    LEGEND: process.env.DISCORD_LEGEND_ROLE_ID,
+    PREMIUM: process.env.DISCORD_PREMIUM_ROLE_ID ?? process.env.DISCORD_VIP_ROLE_ID,
+    GOLD: process.env.DISCORD_GOLD_ROLE_ID,
+    FREE: process.env.DISCORD_FREE_ROLE_ID,
+  };
+  return map[tier];
+}
+
+function getAllTierRoleIds(): string[] {
+  return [
+    process.env.DISCORD_ROOKIE_ROLE_ID,
+    process.env.DISCORD_GRINDER_ROLE_ID,
+    process.env.DISCORD_LEGEND_ROLE_ID,
+    process.env.DISCORD_PREMIUM_ROLE_ID ?? process.env.DISCORD_VIP_ROLE_ID,
+    process.env.DISCORD_GOLD_ROLE_ID,
+    process.env.DISCORD_FREE_ROLE_ID,
+  ].filter(Boolean) as string[];
+}
+
+export async function syncUserTierRole(
+  discordId: string,
+  tier: string
+): Promise<void> {
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  if (!guildId || !botToken || !discordId) return;
+
+  const targetRoleId = getTierRoleId(tier);
+  const allRoleIds = getAllTierRoleIds();
+
+  // Remove all tier roles first, then add the correct one
+  await Promise.all(
+    allRoleIds
+      .filter((id) => id !== targetRoleId)
+      .map((id) =>
+        fetch(`${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bot ${botToken}` },
+        }).catch(() => {})
+      )
+  );
+
+  if (targetRoleId) {
+    await fetch(
+      `${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${targetRoleId}`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+        body: "{}",
+      }
+    ).catch(() => {});
+  }
+}

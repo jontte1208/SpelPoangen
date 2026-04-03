@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getWeeklyQuestStatus, claimWeeklyQuest } from "@/lib/quest-system";
+import { prisma } from "@/lib/prisma";
+import { sendLevelUpAnnouncement } from "@/lib/discord-bot";
 import { z } from "zod";
 
 const schema = z.object({
@@ -21,6 +23,16 @@ export async function POST(request: Request) {
   if (!result.success) {
     const status = result.error === "Already claimed" ? 409 : 400;
     return NextResponse.json({ error: result.error }, { status });
+  }
+
+  // Discord level up announcement — fire and forget
+  if (result.didLevelUp) {
+    prisma.user
+      .findUnique({ where: { id: session.user.id }, select: { name: true, discordId: true } })
+      .then((u) =>
+        sendLevelUpAnnouncement(u?.name ?? "Anonym", result.newLevel, u?.discordId)
+      )
+      .catch(() => {});
   }
 
   return NextResponse.json(result);
