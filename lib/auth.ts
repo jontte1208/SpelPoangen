@@ -3,6 +3,7 @@ import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
 import { updateStreak } from "@/lib/gamification";
+import { syncLevelRoles, syncUserTierRole } from "@/lib/discord-bot";
 import type { Tier } from "@/types/user";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -223,6 +224,27 @@ export const authOptions: NextAuthOptions = {
           userId: user.id,
           discordId,
           guildId: guildConfig.guildId,
+          error: toErrorMeta(error),
+        });
+      }
+
+      // Sync Discord roles on every sign-in (assigns ROOKIE immediately for new users,
+      // and keeps roles up-to-date for returning users)
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { level: true, tier: true },
+        });
+        if (dbUser) {
+          await Promise.all([
+            syncLevelRoles(discordId, dbUser.level),
+            syncUserTierRole(discordId, dbUser.tier),
+          ]);
+        }
+      } catch (error) {
+        console.error("[auth.events.signIn] discord role sync failed", {
+          userId: user.id,
+          discordId,
           error: toErrorMeta(error),
         });
       }

@@ -122,6 +122,7 @@ export default function AdminDashboard() {
   const [resettingQuests, setResettingQuests] = useState(false);
   const [tierUpdatingUserId, setTierUpdatingUserId] = useState<string | null>(null);
   const [tierSyncStatus, setTierSyncStatus] = useState<{ [key: string]: "syncing" | "success" | "error" | null }>({});
+  const [discordSyncingUserId, setDiscordSyncingUserId] = useState<string | null>(null);
   const [doubleXPEndsAt, setDoubleXPEndsAt] = useState<string | null>(null);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
   const [doubleXPUpdating, setDoubleXPUpdating] = useState(false);
@@ -394,6 +395,15 @@ export default function AdminDashboard() {
       alert("Kunde inte nollställa quest-claims");
     }
     setResettingQuests(false);
+  }
+
+  async function syncDiscordRoles(userId: string) {
+    setDiscordSyncingUserId(userId);
+    try {
+      await fetch(`/api/admin/users/${userId}/sync-discord`, { method: "POST" });
+    } finally {
+      setDiscordSyncingUserId(null);
+    }
   }
 
   async function setUserTier(user: AdminUser, tier: string) {
@@ -769,6 +779,18 @@ export default function AdminDashboard() {
                             className="rounded-lg border border-neon-cyan/20 bg-neon-cyan/5 px-3 py-1.5 text-[11px] font-semibold text-neon-cyan transition-all hover:border-neon-cyan/40 hover:bg-neon-cyan/10"
                           >
                             Redigera
+                          </button>
+                          <button
+                            onClick={() => syncDiscordRoles(user.id)}
+                            disabled={discordSyncingUserId === user.id}
+                            title="Synca Discord-roller"
+                            className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-2 py-1.5 text-[11px] font-semibold text-indigo-300 transition-all hover:border-indigo-500/40 hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {discordSyncingUserId === user.id ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <RotateCcw size={11} />
+                            )}
                           </button>
                             <div className="relative">
                               <select
