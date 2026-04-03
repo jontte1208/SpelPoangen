@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Users, UserPlus, ShoppingBag, MessageSquare, Gamepad2, Headphones, Trophy, Zap } from "lucide-react";
+import { Users, UserPlus, ShoppingBag, MessageSquare, Gamepad2, Headphones, Trophy, Zap, Plus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import LevelUpModal from "./LevelUpModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,11 +17,10 @@ type QuestDef = {
   icon: LucideIcon;
   xp: number;
   goal: number;
-  image: string; // Unsplash URL
+  image: string;
 };
 
 // ─── Quest pool ───────────────────────────────────────────────────────────────
-// Add new quests here — 3 are picked automatically each Monday.
 
 const QUEST_POOL: QuestDef[] = [
   {
@@ -78,10 +79,9 @@ const QUEST_POOL: QuestDef[] = [
   },
 ];
 
-// ─── Week-based rotation ──────────────────────────────────────────────────────
+// ─── Week rotation ────────────────────────────────────────────────────────────
 
 function getWeekIndex() {
-  // Week 0 = week starting 1970-01-05 (first Monday)
   const EPOCH_MONDAY = 4 * 24 * 60 * 60 * 1000;
   return Math.floor((Date.now() - EPOCH_MONDAY) / (7 * 24 * 60 * 60 * 1000));
 }
@@ -95,10 +95,6 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
-}
-
-function getWeeklyQuests(): QuestDef[] {
-  return seededShuffle(QUEST_POOL, getWeekIndex()).slice(0, 3);
 }
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
@@ -123,10 +119,11 @@ function useCountdown() {
 
 // ─── QuestCard ────────────────────────────────────────────────────────────────
 
-function QuestCard({ quest, progress, claimed, onClaim }: {
+function QuestCard({ quest, progress, claimed, onClaim, claiming }: {
   quest: QuestDef;
   progress: number;
   claimed: boolean;
+  claiming: boolean;
   onClaim: () => void;
 }) {
   const pct = Math.min((progress / quest.goal) * 100, 100);
@@ -136,20 +133,14 @@ function QuestCard({ quest, progress, claimed, onClaim }: {
   return (
     <div className={cn(
       "flex flex-col overflow-hidden rounded-2xl border backdrop-blur-xl transition-colors",
-      claimed ? "border-emerald-500/30" : complete ? "border-neon-cyan/25 shadow-[0_0_20px_rgba(0,245,255,0.06)]" : "border-white/8"
+      claimed ? "border-emerald-500/30"
+        : complete ? "border-neon-cyan/25 shadow-[0_0_20px_rgba(0,245,255,0.06)]"
+        : "border-white/8"
     )}>
       {/* Image header */}
       <div className="relative h-36 w-full shrink-0">
-        <Image
-          src={quest.image}
-          alt={quest.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-        />
-        {/* Dark gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-        {/* Icon + title on image */}
+        <Image src={quest.image} alt={quest.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 flex items-end gap-3 px-5 pb-4">
           <div className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
@@ -163,7 +154,7 @@ function QuestCard({ quest, progress, claimed, onClaim }: {
         </div>
       </div>
 
-      {/* Card body */}
+      {/* Body */}
       <div className="flex flex-1 flex-col gap-4 bg-slate-900/80 p-5">
         <p className="text-sm text-slate-400 leading-relaxed">{quest.description}</p>
 
@@ -202,15 +193,15 @@ function QuestCard({ quest, progress, claimed, onClaim }: {
         {/* Claim button */}
         <button
           onClick={onClaim}
-          disabled={!complete || claimed}
+          disabled={!complete || claimed || claiming}
           className={cn(
             "mt-auto w-full rounded-xl py-2.5 text-sm font-semibold transition-all",
             claimed ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 cursor-default"
-              : complete ? "border border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25 shadow-[0_0_14px_rgba(0,245,255,0.2)]"
+              : complete ? "border border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25 shadow-[0_0_14px_rgba(0,245,255,0.2)] disabled:opacity-70"
               : "border border-white/5 bg-slate-800/40 text-slate-600 cursor-not-allowed"
           )}
         >
-          {claimed ? "✓ Hämtad" : complete ? "Hämta belöning" : "Låst"}
+          {claimed ? "✓ Hämtad" : claiming ? "Hämtar…" : complete ? "Hämta belöning" : "Låst"}
         </button>
       </div>
     </div>
@@ -221,56 +212,118 @@ function QuestCard({ quest, progress, claimed, onClaim }: {
 
 export default function WeeklyQuests() {
   const countdown = useCountdown();
-  const quests = useMemo(() => getWeeklyQuests(), []);
+  const router = useRouter();
+  const quests = useMemo(() => seededShuffle(QUEST_POOL, getWeekIndex()).slice(0, 3), []);
+
+  // Progress: stored locally for demo. In production, hook into forum/shop actions.
+  const [progress, setProgress] = useState<Record<string, number>>(
+    Object.fromEntries(quests.map((q) => [q.id, 0]))
+  );
   const [claimed, setClaimed] = useState<string[]>([]);
+  const [claiming, setClaiming] = useState<string | null>(null);
 
-  // Demo: progress is at 0 for all. Wire up to real DB later.
-  const progress: Record<string, number> = {};
-  quests.forEach((q) => { progress[q.id] = 0; });
+  // Level up modal state
+  const [levelUp, setLevelUp] = useState<{ newLevel: number; xpAwarded: number } | null>(null);
 
-  const allClaimed = claimed.length === quests.length;
+  // Load claimed quests from server on mount
+  useEffect(() => {
+    fetch("/api/quests/claim")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data.claimed)) setClaimed(data.claimed); })
+      .catch(() => {});
+  }, []);
+
+  async function handleClaim(quest: QuestDef) {
+    if (claiming) return;
+    setClaiming(quest.id);
+    try {
+      const res = await fetch("/api/quests/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questId: quest.id, xp: quest.xp }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClaimed((prev) => prev.concat(quest.id));
+        if (data.didLevelUp) {
+          setLevelUp({ newLevel: data.newLevel, xpAwarded: data.xpAwarded });
+        }
+        // Refresh server components so header XP updates
+        router.refresh();
+      }
+    } finally {
+      setClaiming(null);
+    }
+  }
+
+  const allClaimed = quests.every((q) => claimed.includes(q.id));
   const totalXP = quests.reduce((sum, q) => sum + q.xp, 0);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-neon-cyan/70 mb-1">Den här veckan</p>
-          <h2 className="text-2xl font-bold text-white">Veckans Utmaningar</h2>
-        </div>
-        <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2 text-xs text-slate-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Nollställs om:</span>
-          <span className="font-mono font-semibold text-white">{countdown}</span>
-        </div>
-      </div>
+    <>
+      <LevelUpModal
+        show={!!levelUp}
+        newLevel={levelUp?.newLevel ?? 1}
+        xpAwarded={levelUp?.xpAwarded ?? 0}
+        onClose={() => setLevelUp(null)}
+      />
 
-      {/* Success state */}
-      {allClaimed ? (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/5 py-16 text-center shadow-[0_0_40px_rgba(234,179,8,0.08)]">
-          <Trophy size={52} className="text-yellow-400" />
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-lg font-bold text-yellow-300">Veckans loot säkrad!</p>
-            <p className="mt-1 text-sm text-slate-400">
-              Du tjänade <span className="text-blue-400 font-semibold">{totalXP} XP</span> den här veckan.
-            </p>
-            <p className="mt-0.5 text-sm text-slate-500">Kom tillbaka nästa måndag för nya utmaningar.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-neon-cyan/70 mb-1">Den här veckan</p>
+            <h2 className="text-2xl font-bold text-white">Veckans Utmaningar</h2>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2 text-xs text-slate-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Nollställs om:</span>
+            <span className="font-mono font-semibold text-white">{countdown}</span>
           </div>
         </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {quests.map((quest) => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              progress={progress[quest.id] ?? 0}
-              claimed={claimed.includes(quest.id)}
-              onClaim={() => setClaimed((prev) => prev.concat(quest.id))}
-            />
+
+        {/* Demo progress controls */}
+        <div className="flex flex-wrap gap-2 rounded-xl border border-white/5 bg-slate-900/30 p-3">
+          <p className="w-full text-[10px] uppercase tracking-widest text-slate-600 mb-1">Demo — fyll progress</p>
+          {quests.map((q) => (
+            <button
+              key={q.id}
+              onClick={() => setProgress((p) => ({ ...p, [q.id]: Math.min((p[q.id] ?? 0) + 1, q.goal) }))}
+              disabled={claimed.includes(q.id) || (progress[q.id] ?? 0) >= q.goal}
+              className="flex items-center gap-1 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-500 hover:text-white transition-colors disabled:opacity-30"
+            >
+              <Plus size={10} /> {q.title}
+            </button>
           ))}
         </div>
-      )}
-    </div>
+
+        {/* Success state */}
+        {allClaimed ? (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/5 py-16 text-center shadow-[0_0_40px_rgba(234,179,8,0.08)]">
+            <Trophy size={52} className="text-yellow-400" />
+            <div>
+              <p className="text-lg font-bold text-yellow-300">Veckans loot säkrad!</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Du tjänade <span className="text-blue-400 font-semibold">{totalXP} XP</span> den här veckan.
+              </p>
+              <p className="mt-0.5 text-sm text-slate-500">Kom tillbaka nästa måndag för nya utmaningar.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {quests.map((quest) => (
+              <QuestCard
+                key={quest.id}
+                quest={quest}
+                progress={progress[quest.id] ?? 0}
+                claimed={claimed.includes(quest.id)}
+                claiming={claiming === quest.id}
+                onClaim={() => handleClaim(quest)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

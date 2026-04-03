@@ -132,9 +132,22 @@ model User {
   affiliateClicks AffiliateClick[]
   purchases       Purchase[]
   orders          Order[]
-  forumPosts      ForumPost[]
-  forumComments   ForumComment[]
-  forumLikes      ForumLike[]
+  forumPosts          ForumPost[]
+  forumComments       ForumComment[]
+  forumLikes          ForumLike[]
+  weeklyQuestClaims   UserWeeklyQuestClaim[]
+}
+
+model UserWeeklyQuestClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  questId   String
+  weekIndex Int
+  xpAwarded Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, weekIndex])
 }
 
 model Product {
