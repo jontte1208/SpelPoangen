@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Gamepad2, Send, ChevronDown, ChevronUp, Clock } from "lucide-react";
 
@@ -62,7 +63,7 @@ function PostCard({ post, currentUserId }: { post: Post; currentUserId: string }
 
       <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-3">
         {post.author.image ? (
-          <img src={post.author.image} alt="" className="h-6 w-6 rounded-full object-cover" />
+          <Image src={post.author.image} alt="" width={24} height={24} className="rounded-full object-cover" />
         ) : (
           <div className="h-6 w-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-slate-400">
             {post.author.name?.[0] ?? "?"}
@@ -105,7 +106,7 @@ export default function ForumFeed({ currentUserId }: { currentUserId: string }) 
         body: JSON.stringify({ title, content, game: game || undefined }),
       });
       if (!res.ok) {
-        const data = await res.json();
+        await res.json();
         setError("Något gick fel. Kontrollera att titeln är minst 3 tecken och texten minst 10 tecken.");
         return;
       }
