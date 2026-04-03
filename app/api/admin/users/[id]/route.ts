@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateLevel } from "@/lib/gamification";
 import { getWeekIndex } from "@/lib/quest-system";
-import { sendLevelUpAnnouncement, updateLeaderboardMessage } from "@/lib/discord-bot";
+import { sendLevelUpAnnouncement, updateLeaderboardMessage, syncLevelRoles, syncUserTierRole } from "@/lib/discord-bot";
 import type { Tier } from "@prisma/client";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -170,6 +170,9 @@ export async function PATCH(
   // Discord notifications — fire and forget
   if (didLevelUp) {
     sendLevelUpAnnouncement(currentUser.name ?? "Anonym", nextLevel, currentUser.discordId).catch(() => {});
+    if (user.discordId) {
+      syncLevelRoles(user.discordId, nextLevel).catch(() => {});
+    }
   }
   if (parsedXpDelta !== 0) {
     prisma.user
@@ -177,22 +180,8 @@ export async function PATCH(
       .then((players) => updateLeaderboardMessage(players))
       .catch(() => {});
   }
-
   if (nextTier && user.discordId) {
-    try {
-      await syncDiscordTierRoles({
-        userId: user.id,
-        discordUserId: user.discordId,
-        tier: nextTier,
-      });
-    } catch (error) {
-      console.error("[admin.users.patch] discord tier sync failed", {
-        userId: user.id,
-        discordUserId: user.discordId,
-        tier: nextTier,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+    syncUserTierRole(user.discordId, nextTier).catch(() => {});
   }
 
   return NextResponse.json({

@@ -160,6 +160,39 @@ export async function updateLeaderboardMessage(
   await sendToChannel(channelId, { embeds: [embed] });
 }
 
+// ─── Level roles ───────────────────────────────────────────────────────────────
+// Milestones: reaching or passing a level awards the role permanently (cumulative).
+// Configure one Discord role per milestone in env vars.
+
+const LEVEL_MILESTONES: { level: number; envKey: string }[] = [
+  { level: 5,   envKey: "DISCORD_LEVEL_5_ROLE_ID" },
+  { level: 10,  envKey: "DISCORD_LEVEL_10_ROLE_ID" },
+  { level: 20,  envKey: "DISCORD_LEVEL_20_ROLE_ID" },
+  { level: 50,  envKey: "DISCORD_LEVEL_50_ROLE_ID" },
+  { level: 100, envKey: "DISCORD_LEVEL_100_ROLE_ID" },
+];
+
+export async function syncLevelRoles(discordId: string, level: number): Promise<void> {
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  if (!guildId || !botToken || !discordId) return;
+
+  await Promise.all(
+    LEVEL_MILESTONES.map(async ({ level: threshold, envKey }) => {
+      const roleId = process.env[envKey];
+      if (!roleId) return;
+      if (level >= threshold) {
+        // Award role if not already held
+        await fetch(`${DISCORD_API}/guilds/${guildId}/members/${discordId}/roles/${roleId}`, {
+          method: "PUT",
+          headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+          body: "{}",
+        }).catch(() => {});
+      }
+    })
+  );
+}
+
 // ─── Role sync ─────────────────────────────────────────────────────────────────
 
 function getTierRoleId(tier: string): string | undefined {

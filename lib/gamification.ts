@@ -55,14 +55,22 @@ export async function addXP(
     data: { xp: newXP, level: newLevel },
   });
 
-  // Update Discord leaderboard — fire and forget
-  import("@/lib/discord-bot")
-    .then(({ updateLeaderboardMessage }) =>
+  // Discord side-effects — fire and forget
+  import("@/lib/discord-bot").then(({ updateLeaderboardMessage, syncLevelRoles }) => {
+    // Always refresh leaderboard
+    prisma.user
+      .findMany({ orderBy: { xp: "desc" }, take: 10, select: { name: true, xp: true, level: true } })
+      .then((players) => updateLeaderboardMessage(players))
+      .catch(() => {});
+
+    // Sync level roles when level changes
+    if (didLevelUp) {
       prisma.user
-        .findMany({ orderBy: { xp: "desc" }, take: 10, select: { name: true, xp: true, level: true } })
-        .then((players) => updateLeaderboardMessage(players))
-    )
-    .catch(() => {});
+        .findUnique({ where: { id: userId }, select: { discordId: true } })
+        .then((u) => { if (u?.discordId) syncLevelRoles(u.discordId, newLevel); })
+        .catch(() => {});
+    }
+  }).catch(() => {});
 
   return { newXP, newLevel, didLevelUp };
 }
