@@ -55,6 +55,15 @@ export async function addXP(
     data: { xp: newXP, level: newLevel },
   });
 
+  // Update Discord leaderboard — fire and forget
+  import("@/lib/discord-bot")
+    .then(({ updateLeaderboardMessage }) =>
+      prisma.user
+        .findMany({ orderBy: { xp: "desc" }, take: 10, select: { name: true, xp: true, level: true } })
+        .then((players) => updateLeaderboardMessage(players))
+    )
+    .catch(() => {});
+
   return { newXP, newLevel, didLevelUp };
 }
 

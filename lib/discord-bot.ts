@@ -105,6 +105,61 @@ export async function sendLootDropEmbed(item: {
   });
 }
 
+// ─── Leaderboard (auto-updating pinned message) ────────────────────────────────
+
+export async function updateLeaderboardMessage(
+  players: { name: string | null; xp: number; level: number }[]
+): Promise<void> {
+  const channelId = process.env.DISCORD_LEADERBOARD_CHANNEL_ID;
+  const appId = process.env.DISCORD_APPLICATION_ID;
+  if (!channelId || !process.env.DISCORD_BOT_TOKEN) return;
+
+  const rows = players
+    .slice(0, 10)
+    .map((u, i) => {
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `\`${i + 1}.\``;
+      return `${medal} **${u.name ?? "Anonym"}** — Nivå ${u.level} • ${u.xp.toLocaleString("sv")} XP`;
+    })
+    .join("\n");
+
+  const embed = {
+    title: "🏆 SpelPoängen Topplista",
+    description: rows.length ? rows : "Inga spelare ännu.",
+    color: 0xfacc15,
+    footer: { text: "Uppdateras automatiskt  •  spelpoangen.se" },
+    timestamp: new Date().toISOString(),
+  };
+
+  // Try to find and edit our previous message in the channel
+  let existingMessageId: string | null = null;
+  if (appId) {
+    try {
+      const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages?limit=20`, {
+        headers: botHeaders(),
+      });
+      if (res.ok) {
+        const messages = (await res.json()) as { id: string; author: { id: string } }[];
+        const own = messages.find((m) => m.author.id === appId);
+        if (own) existingMessageId = own.id;
+      }
+    } catch { /* fall through to post new */ }
+  }
+
+  if (existingMessageId) {
+    try {
+      const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${existingMessageId}`, {
+        method: "PATCH",
+        headers: botHeaders(),
+        body: JSON.stringify({ embeds: [embed] }),
+      });
+      if (res.ok) return;
+    } catch { /* fall through to post new */ }
+  }
+
+  // No existing message — post fresh
+  await sendToChannel(channelId, { embeds: [embed] });
+}
+
 // ─── Role sync ─────────────────────────────────────────────────────────────────
 
 function getTierRoleId(tier: string): string | undefined {

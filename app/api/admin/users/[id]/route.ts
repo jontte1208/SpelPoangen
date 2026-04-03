@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateLevel } from "@/lib/gamification";
 import { getWeekIndex } from "@/lib/quest-system";
+import { sendLevelUpAnnouncement, updateLeaderboardMessage } from "@/lib/discord-bot";
 import type { Tier } from "@prisma/client";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -141,11 +142,12 @@ export async function PATCH(
 
   const currentUser = await prisma.user.findUniqueOrThrow({
     where: { id: params.id },
-    select: { xp: true },
+    select: { xp: true, level: true, name: true, discordId: true },
   });
 
   const nextXP = Math.max(0, currentUser.xp + parsedXpDelta);
   const nextLevel = calculateLevel(nextXP);
+  const didLevelUp = nextLevel > currentUser.level;
 
   const user = await prisma.user.update({
     where: { id: params.id },
@@ -164,6 +166,17 @@ export async function PATCH(
       discordId: true,
     },
   });
+
+  // Discord notifications — fire and forget
+  if (didLevelUp) {
+    sendLevelUpAnnouncement(currentUser.name ?? "Anonym", nextLevel, currentUser.discordId).catch(() => {});
+  }
+  if (parsedXpDelta !== 0) {
+    prisma.user
+      .findMany({ orderBy: { xp: "desc" }, take: 10, select: { name: true, xp: true, level: true } })
+      .then((players) => updateLeaderboardMessage(players))
+      .catch(() => {});
+  }
 
   if (nextTier && user.discordId) {
     try {
