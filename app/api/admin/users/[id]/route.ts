@@ -4,10 +4,122 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateLevel } from "@/lib/gamification";
 import { getWeekIndex } from "@/lib/quest-system";
-import { sendLevelUpAnnouncement, updateLeaderboardMessage, syncLevelRoles, syncUserTierRole } from "@/lib/discord-bot";
 import type { Tier } from "@prisma/client";
 
-const ALLOWED_TIERS = new Set<Tier>(["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "VETERAN", "LEGEND"]);
+const DISCORD_API_BASE = "https://discord.com/api/v10";
+const ALLOWED_TIERS = new Set<Tier>(["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND"]);
+
+function getDiscordTierRoleConfig() {
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+
+  if (!guildId || !botToken) {
+    return null;
+  }
+
+  return {
+    guildId,
+    botToken,
+    tierRoleIds: {
+      ROOKIE: process.env.DISCORD_ROOKIE_ROLE_ID ?? process.env.DISCORD_LEVEL_1_ROLE_ID ?? null,
+      GRINDER: process.env.DISCORD_GRINDER_ROLE_ID ?? process.env.DISCORD_LEVEL_10_ROLE_ID ?? null,
+      LEGEND: process.env.DISCORD_LEGEND_ROLE_ID ?? process.env.DISCORD_LEVEL_50_ROLE_ID ?? null,
+      PREMIUM: process.env.DISCORD_PREMIUM_ROLE_ID ?? process.env.DISCORD_VIP_ROLE_ID ?? null,
+      GOLD: process.env.DISCORD_GOLD_ROLE_ID ?? null,
+      FREE: process.env.DISCORD_FREE_ROLE_ID ?? null,
+    } as Record<Tier, string | null>,
+  };
+}
+
+async function updateDiscordMemberRole(params: {
+  guildId: string;
+  botToken: string;
+  discordUserId: string;
+  roleId: string;
+  add: boolean;
+}) {
+  const { guildId, botToken, discordUserId, roleId, add } = params;
+
+  const response = await fetch(
+    `${DISCORD_API_BASE}/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+    {
+      method: add ? "PUT" : "DELETE",
+      headers: {
+        Authorization: `Bot ${botToken}`,
+      },
+    }
+  );
+
+  if (response.ok || response.status === 204 || response.status === 404) {
+    return;
+  }
+
+  const body = await response.text();
+  throw new Error(
+    `Discord role sync failed (${response.status}): ${body.slice(0, 300)}`
+  );
+}
+
+async function syncDiscordTierRoles(params: {
+  discordUserId: string;
+  tier: Tier;
+  userId: string;
+}) {
+  const config = getDiscordTierRoleConfig();
+  if (!config) {
+    console.warn("[admin.users.patch] discord tier sync skipped", {
+      userId: params.userId,
+      discordUserId: params.discordUserId,
+      tier: params.tier,
+      reason: "missing_guild_or_bot_token",
+    });
+    return;
+  }
+
+  const uniqueRoleIds = Array.from(
+    new Set(Object.values(config.tierRoleIds).filter((roleId): roleId is string => Boolean(roleId)))
+  );
+
+  if (uniqueRoleIds.length === 0) {
+    console.warn("[admin.users.patch] discord tier sync skipped", {
+      userId: params.userId,
+      discordUserId: params.discordUserId,
+      tier: params.tier,
+      reason: "missing_role_mapping",
+    });
+    return;
+  }
+
+  const targetRoleId = config.tierRoleIds[params.tier];
+  if (!targetRoleId) {
+    console.warn("[admin.users.patch] discord tier sync skipped", {
+      userId: params.userId,
+      discordUserId: params.discordUserId,
+      tier: params.tier,
+      reason: "missing_target_role_for_tier",
+    });
+    return;
+  }
+
+  for (const roleId of uniqueRoleIds) {
+    const shouldAdd = roleId === targetRoleId;
+    await updateDiscordMemberRole({
+      guildId: config.guildId,
+      botToken: config.botToken,
+      discordUserId: params.discordUserId,
+      roleId,
+      add: shouldAdd,
+    });
+  }
+
+  console.info("[admin.users.patch] discord tier sync completed", {
+    userId: params.userId,
+    discordUserId: params.discordUserId,
+    tier: params.tier,
+    guildId: config.guildId,
+    targetRoleId,
+  });
+}
 
 // PATCH — edit XP / coins
 export async function PATCH(
@@ -38,12 +150,11 @@ export async function PATCH(
 
   const currentUser = await prisma.user.findUniqueOrThrow({
     where: { id: params.id },
-    select: { xp: true, level: true, name: true, discordId: true },
+    select: { xp: true },
   });
 
   const nextXP = Math.max(0, currentUser.xp + parsedXpDelta);
   const nextLevel = calculateLevel(nextXP);
-  const didLevelUp = nextLevel > currentUser.level;
 
   const user = await prisma.user.update({
     where: { id: params.id },
@@ -63,21 +174,21 @@ export async function PATCH(
     },
   });
 
-  // Discord notifications — fire and forget
-  if (didLevelUp) {
-    sendLevelUpAnnouncement(currentUser.name ?? "Anonym", nextLevel, currentUser.discordId).catch(() => {});
-    if (user.discordId) {
-      syncLevelRoles(user.discordId, nextLevel).catch(() => {});
-    }
-  }
-  if (parsedXpDelta !== 0) {
-    prisma.user
-      .findMany({ orderBy: { xp: "desc" }, take: 10, select: { name: true, xp: true, level: true } })
-      .then((players) => updateLeaderboardMessage(players))
-      .catch(() => {});
-  }
   if (nextTier && user.discordId) {
-    syncUserTierRole(user.discordId, nextTier).catch(() => {});
+    try {
+      await syncDiscordTierRoles({
+        userId: user.id,
+        discordUserId: user.discordId,
+        tier: nextTier,
+      });
+    } catch (error) {
+      console.error("[admin.users.patch] discord tier sync failed", {
+        userId: user.id,
+        discordUserId: user.discordId,
+        tier: nextTier,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   return NextResponse.json({
