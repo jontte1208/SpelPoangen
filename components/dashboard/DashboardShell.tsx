@@ -102,8 +102,11 @@ type DashboardShellProps = {
   };
 };
 
+type LeaderboardEntry = { id: string; name: string | null; xp: number; role: string };
+
 export default function DashboardShell({ user }: DashboardShellProps) {
   const [showWelcome, setShowWelcome] = useState(true);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -111,6 +114,15 @@ export default function DashboardShell({ user }: DashboardShellProps) {
     }, 30000);
 
     return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/leaderboard?limit=3")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setLeaderboard(data);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -174,40 +186,42 @@ export default function DashboardShell({ user }: DashboardShellProps) {
           <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft">
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.38em] text-neon-cyan/70">Topplista</p>
             <div className="space-y-2">
-              {(
-                [
-                  ["01", user.name ?? "Du", `${user.xp} XP`, true],
-                  ["02", "ShadowLoot", "1280 XP", false],
-                  ["03", "NovaAim", "1145 XP", false],
-                ] as const
-              ).map(([rank, name, xp, current], i) => (
-                <div
-                  key={String(rank)}
-                  className={cn(
-                    "rounded-2xl border p-4 transition-colors",
-                    i === 0 && "border-yellow-400/20 bg-yellow-400/5 shadow-[0_0_14px_rgba(250,204,21,0.08)]",
-                    i === 1 && "border-white/10 bg-slate-900/40",
-                    i === 2 && "border-white/10 bg-slate-900/40",
-                    current && i !== 0 && "border-neon-cyan/25",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      {i === 0 && <Crown size={13} className="shrink-0 text-yellow-400" />}
-                      {i === 1 && <Medal size={13} className="shrink-0 text-slate-300" />}
-                      {i === 2 && <Medal size={13} className="shrink-0 text-amber-600" />}
-                      <span className={cn(
-                        "font-display text-base",
-                        i === 0 && "text-yellow-400",
-                        i === 1 && "text-slate-300",
-                        i === 2 && "text-amber-600",
-                      )}>{rank}</span>
-                      <span className="text-sm text-slate-200">{name}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-white">{xp}</span>
-                  </div>
-                </div>
-              ))}
+              {leaderboard.length === 0
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-[52px] animate-pulse rounded-2xl border border-white/5 bg-slate-900/40" />
+                  ))
+                : leaderboard.map((entry, i) => {
+                    const isCurrentUser = entry.id === user.id;
+                    const rank = String(i + 1).padStart(2, "0");
+                    return (
+                      <div
+                        key={entry.id}
+                        className={cn(
+                          "rounded-2xl border p-4 transition-colors",
+                          i === 0 && "border-yellow-400/20 bg-yellow-400/5 shadow-[0_0_14px_rgba(250,204,21,0.08)]",
+                          i === 1 && "border-white/10 bg-slate-900/40",
+                          i === 2 && "border-white/10 bg-slate-900/40",
+                          isCurrentUser && i !== 0 && "border-neon-cyan/25",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            {i === 0 && <Crown size={13} className="shrink-0 text-yellow-400" />}
+                            {i === 1 && <Medal size={13} className="shrink-0 text-slate-300" />}
+                            {i === 2 && <Medal size={13} className="shrink-0 text-amber-600" />}
+                            <span className={cn(
+                              "font-display text-base",
+                              i === 0 && "text-yellow-400",
+                              i === 1 && "text-slate-300",
+                              i === 2 && "text-amber-600",
+                            )}>{rank}</span>
+                            <span className="text-sm text-slate-200">{entry.name ?? "Okänd"}</span>
+                          </div>
+                          <span className="text-xs font-semibold text-white">{entry.xp} XP</span>
+                        </div>
+                      </div>
+                    );
+                  })}
             </div>
             <Link
               href="/leaderboard"
