@@ -23,12 +23,16 @@ function timeAgo(date: string) {
 
 function AuthorAvatar({ author, pinned }: { author: Author; pinned: boolean }) {
   const showOwnerBadge = pinned && author.role === "ADMIN";
+  const size = pinned ? 40 : 32;
   return (
     <div className="relative shrink-0">
       {author.image ? (
-        <Image src={author.image} alt="" width={28} height={28} className="rounded-full object-cover" />
+        <Image src={author.image} alt="" width={size} height={size} className="rounded-full object-cover" />
       ) : (
-        <div className="h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center text-[11px] text-slate-400">
+        <div
+          style={{ width: size, height: size }}
+          className="rounded-full bg-slate-700 flex items-center justify-center text-[11px] text-slate-400"
+        >
           {author.name?.[0] ?? "?"}
         </div>
       )}
@@ -88,31 +92,23 @@ function PostCard({
           : "border-white/8 bg-slate-900/50 hover:bg-slate-900/70"
       )}
     >
-      {/* Pinned header */}
-      {isPinned && (
-        <div className="flex items-center gap-2 mb-3">
-          <Pin size={11} className="text-amber-400" />
-          <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400">
-            Officiellt
-          </span>
-          <span className="text-[10px] text-amber-600/60 uppercase tracking-widest">· Fäst inlägg</span>
-        </div>
-      )}
-
-      {/* Author row — top */}
+      {/* Author row — always on top */}
       <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <AuthorAvatar author={post.author} pinned={isPinned} />
-          <span className={cn("text-sm font-medium", isPinned ? "text-amber-200/80" : "text-slate-300")}>
-            {post.author.name ?? "Okänd"}
-          </span>
-          <span className="text-[10px] text-slate-600">·</span>
-          <span className="text-[10px] text-slate-500">Lv {post.author.level}</span>
-          {post.author.id === currentUserId && (
-            <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-slate-400">
-              Du
-            </span>
-          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={cn("text-base font-semibold", isPinned ? "text-amber-100" : "text-white")}>
+                {post.author.name ?? "Okänd"}
+              </span>
+              {post.author.id === currentUserId && (
+                <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-slate-400">
+                  Du
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-slate-500">Lv {post.author.level}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Admin controls — stop propagation so clicks don't navigate */}
@@ -148,7 +144,18 @@ function PostCard({
         </div>
       </div>
 
-      {/* Game tag + title */}
+      {/* Pinned badge */}
+      {isPinned && (
+        <div className="flex items-center gap-2 mb-2">
+          <Pin size={11} className="text-amber-400" />
+          <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400">
+            Officiellt
+          </span>
+          <span className="text-[10px] text-amber-600/60 uppercase tracking-widest">· Fäst inlägg</span>
+        </div>
+      )}
+
+      {/* Game tag */}
       <div className="flex flex-wrap items-center gap-2 mb-1">
         {post.game && (
           <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
