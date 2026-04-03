@@ -4,6 +4,12 @@ import Link from "next/link";
 
 export const metadata = { title: "Produkter" };
 
+const liveStockSignals = [
+  { name: "Razer Viper 8K", status: "7 kvar", href: "/shop", isLowStock: false },
+  { name: "SteelSeries Apex Pro", status: "12 kvar", href: "/shop", isLowStock: false },
+  { name: "Corsair Vengeance", status: "Low stock", href: "/shop", isLowStock: true },
+];
+
 const productGrid = [
   {
     name: "ASUS ROG Swift OLED",
@@ -95,15 +101,31 @@ export default function ProductsPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-neon-cyan/70">Flash Signals</p>
           <h3 className="mt-3 font-display text-2xl font-semibold text-white">Lagerstatus live</h3>
           <div className="mt-4 space-y-2">
-            {[
-              ["Razer Viper 8K", "7 kvar"],
-              ["SteelSeries Apex Pro", "12 kvar"],
-              ["Corsair Vengeance", "Low stock"],
-            ].map(([name, status]) => (
-              <div key={name} className="rounded-2xl border border-white/5 bg-slate-900/40 p-3">
+            {liveStockSignals.map((item) => (
+              <div
+                key={item.name}
+                className="rounded-2xl border border-white/5 bg-slate-900/40 p-3"
+              >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-slate-200">{name}</span>
-                  <span className="text-xs font-semibold text-neon-cyan">{status}</span>
+                  <div>
+                    <span className="text-sm text-slate-200">{item.name}</span>
+                    <div className="mt-1">
+                      <Link
+                        href={item.href}
+                        className="text-[11px] font-semibold text-neon-cyan transition-colors hover:text-white"
+                      >
+                        Kolla in den nu -&gt;
+                      </Link>
+                    </div>
+                  </div>
+                  <span
+                    className={item.isLowStock
+                      ? "text-xs font-semibold text-red-400 animate-pulse"
+                      : "text-xs font-semibold text-neon-cyan"
+                    }
+                  >
+                    {item.status}
+                  </span>
                 </div>
               </div>
             ))}
