@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2, MessageSquare } from "lucide-react";
+import { Gamepad2, Send, ChevronDown, ChevronUp, Clock, Pin, PinOff, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Author = { id: string; name: string | null; xp: number; level: number; image: string | null; role: string };
 type Post = { id: string; title: string; content: string; game: string | null; pinned: boolean; commentsEnabled: boolean; createdAt: string; author: Author };
@@ -58,6 +59,7 @@ function PostCard({
   const [actionLoading, setActionLoading] = useState(false);
   const isLong = post.content.length > 200;
   const isPinned = post.pinned;
+  const router = useRouter();
 
   async function handlePin() {
     setActionLoading(true);
@@ -79,8 +81,9 @@ function PostCard({
 
   return (
     <div
+      onClick={() => router.push(`/forum/${post.id}`)}
       className={cn(
-        "rounded-2xl border p-5 transition-colors",
+        "rounded-2xl border p-5 transition-colors cursor-pointer",
         isPinned
           ? "border-amber-500/50 bg-amber-950/20 shadow-[0_0_28px_rgba(245,158,11,0.12)] hover:bg-amber-950/30"
           : "border-white/8 bg-slate-900/50 hover:bg-slate-900/70"
@@ -97,30 +100,25 @@ function PostCard({
         </div>
       )}
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            {post.game && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
-                <Gamepad2 size={10} />
-                {post.game}
-              </span>
-            )}
-            {post.author.id === currentUserId && !isPinned && (
-              <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-400">
-                Du
-              </span>
-            )}
-          </div>
-          <h3 className={cn("font-semibold leading-snug", isPinned ? "text-amber-50" : "text-white")}>
-            {post.title}
-          </h3>
+      {/* Author row — top */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <AuthorAvatar author={post.author} pinned={isPinned} />
+          <span className={cn("text-sm font-medium", isPinned ? "text-amber-200/80" : "text-slate-300")}>
+            {post.author.name ?? "Okänd"}
+          </span>
+          <span className="text-[10px] text-slate-600">·</span>
+          <span className="text-[10px] text-slate-500">Lv {post.author.level}</span>
+          {post.author.id === currentUserId && (
+            <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-slate-400">
+              Du
+            </span>
+          )}
         </div>
-
         <div className="flex items-center gap-2 shrink-0">
-          {/* Admin controls */}
+          {/* Admin controls — stop propagation so clicks don't navigate */}
           {isAdmin && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={handlePin}
                 disabled={actionLoading}
@@ -151,6 +149,19 @@ function PostCard({
         </div>
       </div>
 
+      {/* Game tag + title */}
+      <div className="flex flex-wrap items-center gap-2 mb-1">
+        {post.game && (
+          <span className="inline-flex items-center gap-1 rounded-md border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
+            <Gamepad2 size={10} />
+            {post.game}
+          </span>
+        )}
+      </div>
+      <h3 className={cn("font-semibold leading-snug", isPinned ? "text-amber-50" : "text-white")}>
+        {post.title}
+      </h3>
+
       <p className={cn(
         "mt-2 text-sm whitespace-pre-wrap",
         isPinned ? "text-amber-100/70" : "text-slate-300",
@@ -160,30 +171,12 @@ function PostCard({
       </p>
       {isLong && (
         <button
-          onClick={() => setExpanded(!expanded)}
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
           className="mt-1 flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
           {expanded ? <><ChevronUp size={12} /> Visa mindre</> : <><ChevronDown size={12} /> Visa mer</>}
         </button>
       )}
-
-      <div className={cn("mt-3 flex items-center justify-between gap-2 border-t pt-3", isPinned ? "border-amber-500/20" : "border-white/5")}>
-        <div className="flex items-center gap-2">
-          <AuthorAvatar author={post.author} pinned={isPinned} />
-          <span className={cn("text-xs", isPinned ? "text-amber-200/80" : "text-slate-400")}>
-            {post.author.name ?? "Okänd"}
-          </span>
-          <span className="text-[10px] text-slate-600">·</span>
-          <span className="text-[10px] text-slate-500">Lv {post.author.level} · {post.author.xp} XP</span>
-        </div>
-        <Link
-          href={`/forum/${post.id}`}
-          className="flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1.5 text-[11px] text-slate-500 transition-colors hover:border-neon-cyan/20 hover:text-neon-cyan"
-        >
-          <MessageSquare size={11} />
-          {post.commentsEnabled ? "Kommentera" : "Visa"}
-        </Link>
-      </div>
     </div>
   );
 }
