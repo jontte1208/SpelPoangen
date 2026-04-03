@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { SectionIntro } from "@/components/dashboard/SectionIntro";
 import { TrendingUp, Crown, Medal } from "lucide-react";
+import Link from "next/link";
 
 export const metadata = { title: "Topplista" };
 
@@ -47,38 +48,41 @@ export default async function LeaderboardPage() {
           const style = rankStyles[i] ?? { card: "bg-slate-950/70", num: "text-neon-cyan" };
 
           return (
-            <Card
-              key={entry.id}
-              className={`rounded-3xl border p-5 transition-colors duration-150 hover:bg-white/5 ${style.card}`}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    {i === 0 && <Crown size={16} className="text-yellow-400" />}
-                    {i === 1 && <Medal size={16} className="text-slate-300" />}
-                    {i === 2 && <Medal size={16} className="text-amber-600" />}
-                    <span className={`font-display text-2xl ${style.num}`}>{rank}</span>
-                  </div>
-                  <div>
+            <Link key={entry.id} href={`/profile/${entry.id}`} className="block">
+              <Card
+                className={`rounded-3xl border p-5 transition-colors duration-150 hover:bg-white/5 ${style.card}`}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-white">{entry.name ?? "Okänd"}</p>
-                      {isAdmin && <OwnerBadge />}
-                      {isCurrentUser && (
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                        </span>
-                      )}
+                      {i === 0 && <Crown size={16} className="text-yellow-400" />}
+                      {i === 1 && <Medal size={16} className="text-slate-300" />}
+                      {i === 2 && <Medal size={16} className="text-amber-600" />}
+                      <span className={`font-display text-2xl ${style.num}`}>{rank}</span>
                     </div>
-                    <p className="text-sm text-slate-400">Totalt intjänad XP</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white transition-colors hover:text-neon-cyan">
+                          {entry.name ?? "Okänd"}
+                        </p>
+                        {isAdmin && <OwnerBadge />}
+                        {isCurrentUser && (
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-400">Totalt intjänad XP</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp size={13} className="text-emerald-400" />
+                    <span className="font-mono text-sm text-white">{entry.xp} XP</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <TrendingUp size={13} className="text-emerald-400" />
-                  <span className="font-mono text-sm text-white">{entry.xp} XP</span>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </Link>
           );
         })}
       </div>
