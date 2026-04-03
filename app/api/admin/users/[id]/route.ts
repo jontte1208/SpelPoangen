@@ -7,7 +7,7 @@ import { getWeekIndex } from "@/lib/quest-system";
 import { sendLevelUpAnnouncement, updateLeaderboardMessage, syncLevelRoles, syncUserTierRole } from "@/lib/discord-bot";
 import type { Tier } from "@prisma/client";
 
-const ALLOWED_TIERS = new Set<Tier>(["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "LEGEND"]);
+const ALLOWED_TIERS = new Set<Tier>(["FREE", "GOLD", "PREMIUM", "ROOKIE", "GRINDER", "VETERAN", "LEGEND"]);
 
 // PATCH — edit XP / coins
 export async function PATCH(

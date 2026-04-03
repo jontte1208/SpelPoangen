@@ -342,7 +342,7 @@ export default function AdminDashboard() {
     setSaving(true);
     const xpDelta = parseInt(editModal.xpDelta) || 0;
     const coinsDelta = parseInt(editModal.coinsDelta) || 0;
-    const tier = ["FREE", "ROOKIE", "GRINDER", "LEGEND", "PREMIUM", "GOLD"].includes(editModal.tier)
+    const tier = ["FREE", "ROOKIE", "GRINDER", "VETERAN", "LEGEND", "PREMIUM", "GOLD"].includes(editModal.tier)
       ? editModal.tier
       : undefined;
     
@@ -631,6 +631,7 @@ export default function AdminDashboard() {
                   <option value="ALL">Tier: Alla</option>
                   <option value="ROOKIE">ROOKIE (LVL 1)</option>
                   <option value="GRINDER">GRINDER (LVL 10+)</option>
+                  <option value="VETERAN">VETERAN (LVL 25+)</option>
                   <option value="LEGEND">LEGEND (LVL 50+)</option>
                   <option value="PREMIUM">PREMIUM PASS</option>
                 </select>
@@ -742,6 +743,7 @@ export default function AdminDashboard() {
                             "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]",
                             user.tier === "LEGEND"  && "bg-amber-500/15 text-amber-400",
                             user.tier === "PREMIUM" && "bg-purple-500/15 text-purple-400",
+                            user.tier === "VETERAN" && "bg-orange-500/15 text-orange-400",
                             user.tier === "GRINDER" && "bg-green-500/15 text-green-400",
                             user.tier === "ROOKIE"  && "bg-violet-500/15 text-violet-400",
                           )}
@@ -797,6 +799,7 @@ export default function AdminDashboard() {
                               >
                                 <option value="ROOKIE">ROOKIE (LVL 1)</option>
                                 <option value="GRINDER">GRINDER (LVL 10+)</option>
+                                <option value="VETERAN">VETERAN (LVL 25+)</option>
                                 <option value="LEGEND">LEGEND (LVL 50+)</option>
                                 <option value="PREMIUM">PREMIUM PASS</option>
                               </select>
@@ -905,6 +908,7 @@ export default function AdminDashboard() {
                     >
                       <option value="ROOKIE">ROOKIE (LVL 1)</option>
                       <option value="GRINDER">GRINDER (LVL 10+)</option>
+                      <option value="VETERAN">VETERAN (LVL 25+)</option>
                       <option value="LEGEND">LEGEND (LVL 50+)</option>
                       <option value="PREMIUM">PREMIUM PASS</option>
                     </select>

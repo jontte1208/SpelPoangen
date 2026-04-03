@@ -1,4 +1,4 @@
-export type Tier = "ROOKIE" | "GRINDER" | "LEGEND" | "PREMIUM" | "GOLD" | "FREE";
+export type Tier = "ROOKIE" | "GRINDER" | "VETERAN" | "LEGEND" | "PREMIUM" | "GOLD" | "FREE";
 
 export interface UserProfile {
   id: string;
@@ -25,6 +25,7 @@ export interface LeaderboardEntry {
 export const TIER_LABELS: Record<Tier, string> = {
   ROOKIE: "Rookie (LVL 1)",
   GRINDER: "Grinder (LVL 10+)",
+  VETERAN: "Veteran (LVL 25+)",
   LEGEND: "Legend (LVL 50+)",
   PREMIUM: "Premium Pass",
   GOLD: "Gold",
@@ -34,6 +35,7 @@ export const TIER_LABELS: Record<Tier, string> = {
 export const TIER_COLORS: Record<Tier, string> = {
   ROOKIE: "text-white",
   GRINDER: "text-green-400",
+  VETERAN: "text-orange-400",
   LEGEND: "text-yellow-400",
   PREMIUM: "text-yellow-300",
   GOLD: "text-yellow-500",

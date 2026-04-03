@@ -54,6 +54,7 @@ model VerificationToken {
 enum Tier {
   ROOKIE
   GRINDER
+  VETERAN
   LEGEND
   PREMIUM
   GOLD
