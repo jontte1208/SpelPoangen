@@ -629,12 +629,10 @@ export default function AdminDashboard() {
                   className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 outline-none transition-colors focus:border-neon-cyan/40"
                 >
                   <option value="ALL">Tier: Alla</option>
-                  <option value="FREE">Free</option>
-                  <option value="ROOKIE">Rookie</option>
-                  <option value="GRINDER">Grinder</option>
-                  <option value="LEGEND">Legend</option>
-                  <option value="PREMIUM">Premium</option>
-                  <option value="GOLD">Gold</option>
+                  <option value="ROOKIE">ROOKIE (LVL 1)</option>
+                  <option value="GRINDER">GRINDER (LVL 10+)</option>
+                  <option value="LEGEND">LEGEND (LVL 50+)</option>
+                  <option value="PREMIUM">PREMIUM PASS</option>
                 </select>
 
                 <select
@@ -742,15 +740,13 @@ export default function AdminDashboard() {
                         <span
                           className={cn(
                             "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]",
-                            user.tier === "LEGEND" && "bg-amber-500/15 text-amber-400",
+                            user.tier === "LEGEND"  && "bg-amber-500/15 text-amber-400",
                             user.tier === "PREMIUM" && "bg-purple-500/15 text-purple-400",
                             user.tier === "GRINDER" && "bg-green-500/15 text-green-400",
-                            user.tier === "GOLD" && "bg-yellow-500/15 text-yellow-400",
-                            user.tier === "ROOKIE" && "bg-blue-500/15 text-blue-400",
-                            user.tier === "FREE" && "bg-slate-500/15 text-slate-400"
+                            user.tier === "ROOKIE"  && "bg-violet-500/15 text-violet-400",
                           )}
                         >
-                          {user.tier}
+                          {user.tier === "PREMIUM" ? "PREMIUM PASS" : user.tier}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
@@ -799,12 +795,10 @@ export default function AdminDashboard() {
                                 disabled={tierUpdatingUserId === user.id}
                                 className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-1.5 text-[11px] font-semibold text-violet-300 transition-all hover:border-violet-500/40 hover:bg-violet-500/10 disabled:cursor-not-allowed disabled:opacity-50 appearance-none pr-8"
                               >
-                                <option value="FREE">FREE</option>
-                                <option value="ROOKIE">ROOKIE</option>
-                                <option value="GRINDER">GRINDER</option>
-                                <option value="LEGEND">LEGEND</option>
-                                <option value="PREMIUM">PREMIUM (VIP)</option>
-                                <option value="GOLD">GOLD</option>
+                                <option value="ROOKIE">ROOKIE (LVL 1)</option>
+                                <option value="GRINDER">GRINDER (LVL 10+)</option>
+                                <option value="LEGEND">LEGEND (LVL 50+)</option>
+                                <option value="PREMIUM">PREMIUM PASS</option>
                               </select>
                               {tierUpdatingUserId === user.id && (
                                 <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-violet-300 pointer-events-none" />
@@ -909,12 +903,10 @@ export default function AdminDashboard() {
                       onChange={(e) => setEditModal((m) => m && { ...m, tier: e.target.value })}
                       className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
                     >
-                      <option value="FREE">FREE</option>
                       <option value="ROOKIE">ROOKIE (LVL 1)</option>
                       <option value="GRINDER">GRINDER (LVL 10+)</option>
                       <option value="LEGEND">LEGEND (LVL 50+)</option>
-                      <option value="PREMIUM">PREMIUM PASS (VIP)</option>
-                      <option value="GOLD">GOLD</option>
+                      <option value="PREMIUM">PREMIUM PASS</option>
                     </select>
                     {tierSyncStatus[editModal.user.id] && (
                       <div className={cn(
