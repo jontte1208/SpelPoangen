@@ -9,8 +9,9 @@ export interface Quest {
 
 export interface UserQuestStatus {
   quest: Quest;
-  completed: boolean;
-  completedAt: Date | null;
+  progress: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
 }
 
 export type QuestTrigger =

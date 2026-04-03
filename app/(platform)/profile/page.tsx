@@ -24,7 +24,7 @@ export default async function ProfilePage() {
       tier: true,
       affiliateCode: true,
       quests: {
-        orderBy: { completedAt: "desc" },
+        orderBy: { updatedAt: "desc" },
         take: 5,
         include: { quest: { select: { title: true, rewardXP: true, rewardCoins: true } } },
       },
@@ -68,7 +68,7 @@ export default async function ProfilePage() {
       title: uq.quest.title,
       rewardXP: uq.quest.rewardXP,
       rewardCoins: uq.quest.rewardCoins,
-      date: uq.completedAt,
+      date: uq.updatedAt,
     })),
     ...(dbUser?.orders ?? []).map((o) => ({
       kind: "order" as const,

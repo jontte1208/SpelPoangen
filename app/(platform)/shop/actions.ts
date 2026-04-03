@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { trackProductView } from "@/lib/quest-system";
 
 type BuyNowResult = {
   url?: string;
@@ -76,4 +77,17 @@ export async function generateAffiliateLinkAction(
   } catch {
     return { error: "Could not generate affiliate link right now." };
   }
+}
+
+export async function trackProductVisitAction(productId: string): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return;
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { id: true },
+  });
+  if (!product) return;
+
+  await trackProductView(session.user.id, product.id);
 }

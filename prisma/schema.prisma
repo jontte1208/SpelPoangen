@@ -135,6 +135,7 @@ model User {
   forumPosts          ForumPost[]
   forumComments       ForumComment[]
   forumLikes          ForumLike[]
+  productViews        UserProductView[]
   weeklyQuestClaims   UserWeeklyQuestClaim[]
 }
 
@@ -167,6 +168,7 @@ model Product {
 
   affiliateClicks AffiliateClick[]
   purchases       Purchase[]
+  viewedByUsers   UserProductView[]
 }
 
 model AffiliateClick {
@@ -241,12 +243,28 @@ model UserQuest {
   id          String   @id @default(cuid())
   userId      String
   questId     String
-  completedAt DateTime @default(now())
+  progress    Int      @default(0)
+  isCompleted Boolean  @default(false)
+  isClaimed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questId])
+}
+
+model UserProductView {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
 }
 
 model ForumPost {

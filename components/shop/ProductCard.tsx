@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ExternalLink, Zap } from "lucide-react";
+import { ExternalLink, Zap, Eye } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { handleAffiliateClick } from "@/app/(platform)/shop/actions";
 import { formatSEK } from "@/lib/utils";
@@ -70,6 +71,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             {isPending ? "LADDAR..." : "KÖP NU"} <ExternalLink size={12} />
           </button>
         </div>
+        <Link
+          href={`/shop/${product.id}`}
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+        >
+          <Eye size={12} /> VISA
+        </Link>
         {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
     </motion.div>

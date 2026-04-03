@@ -123,25 +123,19 @@ export async function claimQuestReward(
     return { success: false, reason: "Quest not found or inactive" };
   }
 
-  if (quest.type === "ONETIME" && quest.userQuests.length > 0) {
-    return { success: false, reason: "Quest already completed" };
+  const userQuest = quest.userQuests[0];
+
+  if (userQuest?.isClaimed) {
+    return { success: false, reason: "Quest already claimed" };
   }
 
-  if (quest.type === "DAILY" && quest.userQuests.length > 0) {
-    const lastCompletion = quest.userQuests[quest.userQuests.length - 1].completedAt;
-    const today = new Date();
-    const isSameDay =
-      lastCompletion.getFullYear() === today.getFullYear() &&
-      lastCompletion.getMonth() === today.getMonth() &&
-      lastCompletion.getDate() === today.getDate();
-
-    if (isSameDay) {
-      return { success: false, reason: "Daily quest already claimed today" };
-    }
+  if (!userQuest?.isCompleted) {
+    return { success: false, reason: "Quest not completed" };
   }
 
-  await prisma.userQuest.create({
-    data: { userId, questId },
+  await prisma.userQuest.update({
+    where: { id: userQuest.id },
+    data: { isClaimed: true },
   });
 
   const { newLevel, didLevelUp } = await addXP(userId, quest.rewardXP);
