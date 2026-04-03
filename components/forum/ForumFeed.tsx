@@ -11,6 +11,15 @@ type Post = { id: string; title: string; content: string; game: string | null; p
 
 const GAMES = ["Valorant", "CS2", "Fortnite", "Apex Legends", "League of Legends", "Minecraft", "Rocket League", "Annat"];
 
+const TABS: { label: string; value: string | null; icon: string }[] = [
+  { label: "Alla",     value: null,       icon: "🎮" },
+  { label: "CS2",      value: "CS2",      icon: "🔫" },
+  { label: "Valorant", value: "Valorant", icon: "⚡" },
+  { label: "LoL",      value: "League of Legends", icon: "⚔️" },
+  { label: "Fortnite", value: "Fortnite", icon: "🏗️" },
+  { label: "Annat",    value: "Annat",    icon: "🕹️" },
+];
+
 function timeAgo(date: string) {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
@@ -223,6 +232,7 @@ function PostCard({
 export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -279,8 +289,37 @@ export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: s
     }
   }
 
+  const visiblePosts = activeTab === null
+    ? posts
+    : posts.filter((p) => p.game === activeTab);
+
   return (
     <div className="space-y-4">
+      {/* Game tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {TABS.map((tab) => {
+          const isActive = tab.value === activeTab;
+          return (
+            <button
+              key={tab.label}
+              onClick={() => setActiveTab(tab.value)}
+              className={cn(
+                "relative flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors",
+                isActive
+                  ? "text-neon-cyan bg-neon-cyan/10"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+              )}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-neon-cyan shadow-[0_0_6px_rgba(0,245,255,0.8)]" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Create post button / form */}
       {!showForm ? (
         <button
@@ -343,12 +382,12 @@ export default function ForumFeed({ currentUserId, isAdmin }: { currentUserId: s
         Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="h-32 animate-pulse rounded-2xl border border-white/5 bg-slate-900/40" />
         ))
-      ) : posts.length === 0 ? (
+      ) : visiblePosts.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-slate-900/30 py-16 text-center text-slate-500 text-sm">
-          Inga inlägg än — var först med att skriva!
+          {activeTab ? `Inga inlägg för ${activeTab} än.` : "Inga inlägg än — var först med att skriva!"}
         </div>
       ) : (
-        posts.map((post) => (
+        visiblePosts.map((post) => (
           <PostCard
             key={post.id}
             post={post}
