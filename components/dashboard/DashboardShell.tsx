@@ -36,6 +36,7 @@ type LiveActivity = {
   type: ActivityType;
   text: string;
   createdAt: string;
+  actorImage: string | null;
 };
 
 const feedItemVariants: Variants = {
@@ -139,9 +140,18 @@ function RecentActivity() {
             variants={feedItemVariants}
             className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm"
           >
-            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${visual.bg}`}>
-              <visual.icon size={13} className={visual.color} />
-            </div>
+            {item.actorImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.actorImage}
+                alt="Profilbild"
+                className="h-7 w-7 shrink-0 rounded-lg border border-white/15 object-cover"
+              />
+            ) : (
+              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${visual.bg}`}>
+                <visual.icon size={13} className={visual.color} />
+              </div>
+            )}
             <p className="min-w-0 flex-1 truncate text-sm text-slate-300">{item.text}</p>
             <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-slate-600">
               {formatActivityTime(item.createdAt)}

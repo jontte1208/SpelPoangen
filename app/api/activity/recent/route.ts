@@ -8,6 +8,7 @@ type RecentActivityItem = {
   type: "forum_post" | "quest_claim" | "affiliate_click" | "purchase";
   text: string;
   createdAt: string;
+  actorImage: string | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
         id: true,
         title: true,
         createdAt: true,
-        author: { select: { name: true } },
+        author: { select: { name: true, image: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
         questId: true,
         xpAwarded: true,
         createdAt: true,
-        user: { select: { name: true } },
+        user: { select: { name: true, image: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         createdAt: true,
-        user: { select: { name: true } },
+        user: { select: { name: true, image: true } },
         product: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         createdAt: true,
-        user: { select: { name: true } },
+        user: { select: { name: true, image: true } },
         product: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -81,24 +82,28 @@ export async function GET(req: NextRequest) {
       type: "forum_post" as const,
       text: `${post.author?.name ?? "En spelare"} postade "${post.title}" i forumet`,
       createdAt: post.createdAt.toISOString(),
+      actorImage: post.author?.image ?? null,
     })),
     ...questClaims.map((claim) => ({
       id: `quest_${claim.id}`,
       type: "quest_claim" as const,
       text: `${claim.user?.name ?? "En spelare"} klarade ${questTitleById.get(claim.questId) ?? "en quest"} (+${claim.xpAwarded} XP)`,
       createdAt: claim.createdAt.toISOString(),
+      actorImage: claim.user?.image ?? null,
     })),
     ...affiliateClicks.map((click) => ({
       id: `click_${click.id}`,
       type: "affiliate_click" as const,
       text: `${click.user?.name ?? "En spelare"} klickade på ${click.product.name}`,
       createdAt: click.createdAt.toISOString(),
+      actorImage: click.user?.image ?? null,
     })),
     ...purchases.map((purchase) => ({
       id: `purchase_${purchase.id}`,
       type: "purchase" as const,
       text: `${purchase.user?.name ?? "En spelare"} köpte ${purchase.product.name}`,
       createdAt: purchase.createdAt.toISOString(),
+      actorImage: purchase.user?.image ?? null,
     })),
   ]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
