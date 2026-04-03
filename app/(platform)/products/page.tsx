@@ -102,32 +102,26 @@ export default function ProductsPage() {
           <h3 className="mt-3 font-display text-2xl font-semibold text-white">Lagerstatus live</h3>
           <div className="mt-4 space-y-2">
             {liveStockSignals.map((item) => (
-              <div
-                key={item.name}
-                className="rounded-2xl border border-white/5 bg-slate-900/40 p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <span className="text-sm text-slate-200">{item.name}</span>
-                    <div className="mt-1">
-                      <Link
-                        href={item.href}
-                        className="text-[11px] font-semibold text-neon-cyan transition-colors hover:text-white"
-                      >
+              <Link key={item.name} href={item.href} className="block">
+                <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-3 transition-all hover:border-neon-cyan/35 hover:bg-slate-900/65">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-sm text-slate-200">{item.name}</span>
+                      <div className="mt-1 text-[11px] font-semibold text-neon-cyan transition-colors hover:text-white">
                         Kolla in den nu -&gt;
-                      </Link>
+                      </div>
                     </div>
+                    <span
+                      className={item.isLowStock
+                        ? "text-xs font-semibold text-red-400 animate-pulse"
+                        : "text-xs font-semibold text-neon-cyan"
+                      }
+                    >
+                      {item.status}
+                    </span>
                   </div>
-                  <span
-                    className={item.isLowStock
-                      ? "text-xs font-semibold text-red-400 animate-pulse"
-                      : "text-xs font-semibold text-neon-cyan"
-                    }
-                  >
-                    {item.status}
-                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </Card>
