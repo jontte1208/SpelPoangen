@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { xpForLevel } from "@/lib/utils";
+import { getBanner } from "@/lib/banners";
 import { Zap, Coins, Flame, Medal, ShoppingBag, CheckCircle2, MessageSquare, Star } from "lucide-react";
+import { ProfileEditor } from "@/components/profile/ProfileEditor";
 
 export const metadata = { title: "Min profil" };
 
@@ -23,6 +25,8 @@ export default async function ProfilePage() {
       level: true,
       tier: true,
       affiliateCode: true,
+      bannerKey: true,
+      customImage: true,
       quests: {
         orderBy: { updatedAt: "desc" },
         take: 5,
@@ -44,7 +48,12 @@ export default async function ProfilePage() {
     level: dbUser?.level ?? session.user.level,
     tier: dbUser?.tier ?? session.user.tier,
     affiliateCode: dbUser?.affiliateCode ?? session.user.affiliateCode,
+    bannerKey: dbUser?.bannerKey ?? "default",
+    customImage: dbUser?.customImage ?? null,
   };
+
+  const banner = getBanner(user.bannerKey);
+  const displayImage = user.customImage || user.image;
 
   // Progress ring
   const currentThreshold = xpForLevel(user.level);
@@ -93,13 +102,18 @@ export default async function ProfilePage() {
       {/* Banner + identity */}
       <section className="glass-panel overflow-hidden rounded-[1.75rem] bg-slate-900/40">
         {/* Banner */}
-        <div className="relative h-36 w-full bg-[linear-gradient(135deg,#0d1f3c_0%,#051120_40%,#0a2a1f_70%,#010b17_100%)]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_50%,rgba(0,245,255,0.12)_0%,transparent_70%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_80%,rgba(56,189,248,0.08)_0%,transparent_60%)]" />
-          {/* subtle grid lines */}
-          <div className="absolute inset-0 opacity-[0.04]"
-            style={{ backgroundImage: "linear-gradient(rgba(0,245,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,1) 1px,transparent 1px)", backgroundSize: "40px 40px" }}
-          />
+        <div
+          className="relative h-36 w-full"
+          style={{ background: banner.style }}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_50%,rgba(0,245,255,0.08)_0%,transparent_70%)]" />
+          <div className="absolute right-4 top-4">
+            <ProfileEditor
+              currentBannerKey={user.bannerKey}
+              currentImage={user.customImage}
+              discordImage={user.image ?? null}
+            />
+          </div>
         </div>
 
         {/* Avatar row */}
@@ -137,9 +151,9 @@ export default async function ProfilePage() {
                   <circle cx="60" cy="60" r="50" />
                 </clipPath>
               </defs>
-              {user.image ? (
+              {displayImage ? (
                 <image
-                  href={user.image}
+                  href={displayImage}
                   x="10" y="10"
                   width="100" height="100"
                   clipPath="url(#avatarClip)"

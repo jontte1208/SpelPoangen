@@ -127,6 +127,10 @@ model User {
   affiliateCode String? @unique
   referredBy    String? // affiliateCode of the referrer
 
+  // Profile customization
+  bannerKey   String  @default("default")
+  customImage String?
+
   // Stripe
   stripeCustomerId       String?   @unique
   stripeSubscriptionId   String?   @unique
