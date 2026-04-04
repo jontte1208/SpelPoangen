@@ -99,3 +99,27 @@ WHERE "discordId" = 'YOUR_DISCORD_ID';
 - Discord callback URL in portal must exactly match /api/auth/callback/discord.
 - Wrong Supabase URL or password in DATABASE_URL prevents writes.
 - If you changed env vars, redeploy so Vercel picks up the new values.
+
+## Railway: Discord join announcements (auto)
+
+This project can automatically post a message in Discord when new members join your server.
+
+Required env vars in Railway:
+
+- CRON_SECRET=any long random string
+- DISCORD_BOT_TOKEN=your bot token
+- DISCORD_GUILD_ID=your Discord server ID
+- DISCORD_MEMBER_JOIN_CHANNEL_ID=1489720997509595177 (or your preferred channel)
+- NEXT_PUBLIC_APP_URL=https://your-app-domain (or set CRON_TARGET_URL)
+
+Then create a Railway Cron Job:
+
+- Command: npm run cron:discord-joins
+- Schedule: every minute (recommended)
+
+Notes:
+
+- Route path used internally: /api/cron/discord-joins
+- First successful run initializes a checkpoint and does not announce old members.
+- Later runs announce only members who joined after the checkpoint.
+- The route accepts both Authorization: Bearer <CRON_SECRET> and x-cron-secret headers.

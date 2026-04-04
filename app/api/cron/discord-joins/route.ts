@@ -21,8 +21,9 @@ function cronAuthorized(request: Request): boolean {
   if (!secret) return false;
 
   const auth = request.headers.get("authorization") || "";
+  const headerSecret = request.headers.get("x-cron-secret") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  return token === secret;
+  return token === secret || headerSecret === secret;
 }
 
 async function fetchGuildMembers(guildId: string, botToken: string): Promise<DiscordMember[]> {
@@ -60,7 +61,7 @@ async function fetchGuildMembers(guildId: string, botToken: string): Promise<Dis
   return members;
 }
 
-export async function GET(request: Request) {
+async function runDiscordJoinCheck(request: Request) {
   if (!cronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -154,4 +155,12 @@ export async function GET(request: Request) {
     checkpoint: latestAnnouncedAt.toISOString(),
     channelId: joinChannelId,
   });
+}
+
+export async function GET(request: Request) {
+  return runDiscordJoinCheck(request);
+}
+
+export async function POST(request: Request) {
+  return runDiscordJoinCheck(request);
 }
