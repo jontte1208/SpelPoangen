@@ -59,9 +59,19 @@ export function ProfileActivity({ userId }: { userId: string }) {
           {items.map((item) => {
             const { Icon, cls, bg } = icon(item.type);
             return (
-              <li key={item.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${bg}`}>
-                  <Icon size={15} className={cls} />
+              <li key={item.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                <div className="relative shrink-0">
+                  {item.actorImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.actorImage} alt="" className="h-8 w-8 rounded-full object-cover border border-white/10" />
+                  ) : (
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${bg}`}>
+                      <Icon size={14} className={cls} />
+                    </div>
+                  )}
+                  <div className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-slate-900 ${bg}`}>
+                    <Icon size={9} className={cls} />
+                  </div>
                 </div>
                 <p className="min-w-0 flex-1 truncate text-sm text-slate-300">{item.text}</p>
                 <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-slate-600">
