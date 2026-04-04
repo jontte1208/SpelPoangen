@@ -11,6 +11,7 @@ type DiscordMember = {
     id?: string;
     username?: string;
     global_name?: string | null;
+    avatar?: string | null;
     bot?: boolean;
   };
 };
@@ -106,6 +107,7 @@ export async function runDiscordJoinSync() {
     await sendMemberJoinAnnouncement({
       discordId,
       username,
+      avatarHash: member.user?.avatar ?? null,
       joinedAt,
       channelId: joinChannelId,
     });

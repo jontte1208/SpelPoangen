@@ -108,6 +108,7 @@ export async function sendLootDropEmbed(item: {
 export async function sendMemberJoinAnnouncement(member: {
   discordId: string;
   username: string;
+  avatarHash?: string | null;
   joinedAt: string;
   channelId?: string;
 }): Promise<void> {
@@ -122,8 +123,23 @@ export async function sendMemberJoinAnnouncement(member: {
     ? `<t:${joinedTs}:F> (<t:${joinedTs}:R>)`
     : "okänd tid";
 
+  const avatarUrl = member.avatarHash
+    ? `https://cdn.discordapp.com/avatars/${member.discordId}/${member.avatarHash}.png?size=256`
+    : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(member.discordId) >> BigInt(22)) % 6}.png`;
+
   await sendToChannel(channelId, {
-    content: `👋 **${member.username}** joinade servern!\n🕒 ${when}\n🆔 \`${member.discordId}\``,
+    embeds: [
+      {
+        author: {
+          name: `${member.username} joinade servern!`,
+          icon_url: avatarUrl,
+        },
+        description: `👋 <@${member.discordId}>\n\n🕒 ${when}\n🆔 \`${member.discordId}\``,
+        thumbnail: { url: avatarUrl },
+        color: 0x00e5ff,
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 
