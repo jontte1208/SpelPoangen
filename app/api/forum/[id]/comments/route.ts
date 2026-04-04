@@ -21,11 +21,16 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       content: true,
       approved: true,
       createdAt: true,
-      author: { select: { id: true, name: true, image: true, level: true } },
+      author: { select: { id: true, name: true, image: true, customImage: true, level: true } },
     },
   });
 
-  return NextResponse.json(comments);
+  const resolved = comments.map((c) => ({
+    ...c,
+    author: { ...c.author, image: c.author.customImage || c.author.image },
+  }));
+
+  return NextResponse.json(resolved);
 }
 
 const commentSchema = z.object({
@@ -62,9 +67,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
       content: true,
       approved: true,
       createdAt: true,
-      author: { select: { id: true, name: true, image: true, level: true } },
+      author: { select: { id: true, name: true, image: true, customImage: true, level: true } },
     },
   });
 
-  return NextResponse.json(comment, { status: 201 });
+  return NextResponse.json({
+    ...comment,
+    author: { ...comment.author, image: comment.author.customImage || comment.author.image },
+  }, { status: 201 });
 }

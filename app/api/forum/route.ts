@@ -22,7 +22,7 @@ export async function GET() {
       pinned: true,
       views: true,
       createdAt: true,
-      author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
+      author: { select: { id: true, name: true, xp: true, level: true, image: true, customImage: true, role: true } },
       _count: { select: { comments: { where: { approved: true } }, likes: true } },
       likes: { where: { userId: session.user.id }, select: { id: true } },
     },
@@ -30,6 +30,7 @@ export async function GET() {
 
   const result = posts.map(({ _count, likes, ...p }) => ({
     ...p,
+    author: p.author ? { ...p.author, image: p.author.customImage || p.author.image } : p.author,
     replyCount: _count.comments,
     likeCount: _count.likes,
     likedByMe: likes.length > 0,
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
       pinned: true,
       views: true,
       createdAt: true,
-      author: { select: { id: true, name: true, xp: true, level: true, image: true, role: true } },
+      author: { select: { id: true, name: true, xp: true, level: true, image: true, customImage: true, role: true } },
     },
   });
 
