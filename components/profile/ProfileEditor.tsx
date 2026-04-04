@@ -77,146 +77,144 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: 
         Redigera profil
       </button>
 
-      {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
-          onClick={() => setOpen(false)}
-        />
-      )}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+        >
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
 
-      {/* Side panel */}
-      <div
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col bg-slate-900 shadow-2xl border-l border-white/10 transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-white">Redigera profil</h2>
-            {saved && (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-                <CheckCircle2 size={12} />
-                Sparad
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setOpen(false)}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-
-          {/* Banner */}
-          <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">Banner — klicka för att välja</p>
-            <div className="grid grid-cols-2 gap-2">
-              {BANNERS.map((banner) => (
-                <button
-                  key={banner.key}
-                  onClick={() => selectBanner(banner.key)}
-                  className="relative overflow-hidden rounded-xl border-2 transition-all"
-                  style={{
-                    borderColor: selectedBanner === banner.key ? "#00f5ff" : "rgba(255,255,255,0.07)",
-                  }}
-                >
-                  <div className="h-16 w-full" style={{ background: banner.style }} />
-                  {selectedBanner === banner.key && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <Check size={18} className="text-neon-cyan drop-shadow" />
-                    </div>
-                  )}
-                  <p className="bg-black/50 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-white/80">
-                    {banner.label}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-white/5" />
-
-          {/* Avatar */}
-          <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">Profilbild</p>
-
-            {/* Preview */}
-            <div className="mb-4 flex justify-center">
-              <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-white/20">
-                {previewImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={previewImage} alt="Preview" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-neon-cyan/10 text-sm text-neon-cyan">SP</div>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <h2 className="font-display text-base font-semibold text-white">Redigera profil</h2>
+                {saved && (
+                  <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    <CheckCircle2 size={11} />
+                    Sparad!
+                  </span>
                 )}
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+
+              {/* Banner */}
+              <div>
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Välj banner — sparas direkt
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {BANNERS.map((banner) => (
+                    <button
+                      key={banner.key}
+                      onClick={() => selectBanner(banner.key)}
+                      className="relative overflow-hidden rounded-xl border-2 transition-all duration-150"
+                      style={{
+                        borderColor: selectedBanner === banner.key ? "#00f5ff" : "rgba(255,255,255,0.07)",
+                        boxShadow: selectedBanner === banner.key ? "0 0 12px rgba(0,245,255,0.2)" : "none",
+                      }}
+                    >
+                      <div className="h-14 w-full" style={{ background: banner.style }} />
+                      {selectedBanner === banner.key && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <Check size={16} className="text-neon-cyan drop-shadow" />
+                        </div>
+                      )}
+                      <p className="bg-black/50 py-1 text-center text-[9px] font-semibold uppercase tracking-[0.08em] text-white/80">
+                        {banner.label}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              {/* Avatar */}
+              <div>
+                <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Profilbild — sparas direkt
+                </p>
+
+                <div className="flex items-center gap-5">
+                  {/* Preview */}
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-white/20 shadow-lg">
+                    {previewImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewImage} alt="Preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-neon-cyan/10 text-sm text-neon-cyan">SP</div>
+                    )}
+                  </div>
+
+                  {/* Options */}
+                  <div className="flex flex-1 flex-col gap-2">
+                    <button
+                      onClick={selectDiscord}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                        avatarMode === "discord"
+                          ? "border-neon-cyan/40 bg-neon-cyan/10 text-white"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      <MessageCircle size={15} className="shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Discord-avatar</p>
+                        <p className="text-[11px] text-slate-500">Din Discord-profilbild</p>
+                      </div>
+                      {avatarMode === "discord" && <Check size={14} className="text-neon-cyan" />}
+                    </button>
+
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all disabled:opacity-50 ${
+                        avatarMode === "custom"
+                          ? "border-neon-cyan/40 bg-neon-cyan/10 text-white"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      <Upload size={15} className="shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">
+                          {uploading ? "Laddar upp..." : avatarMode === "custom" ? "Byt bild" : "Ladda upp bild"}
+                        </p>
+                        <p className="text-[11px] text-slate-500">PNG, JPG, WebP — max 2 MB</p>
+                      </div>
+                      {avatarMode === "custom" && !uploading && <Check size={14} className="text-neon-cyan" />}
+                    </button>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Options */}
-            <div className="space-y-2">
+            {/* Footer */}
+            <div className="border-t border-white/5 px-6 py-4">
               <button
-                onClick={selectDiscord}
-                className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all ${
-                  avatarMode === "discord"
-                    ? "border-neon-cyan/40 bg-neon-cyan/10 text-white"
-                    : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                }`}
+                onClick={() => setOpen(false)}
+                className="w-full rounded-xl bg-neon-cyan/10 border border-neon-cyan/25 py-2.5 text-sm font-semibold text-neon-cyan transition-all hover:bg-neon-cyan/20"
               >
-                <MessageCircle size={15} className="shrink-0" />
-                <div>
-                  <p className="font-semibold">Discord-avatar</p>
-                  <p className="text-[11px] text-slate-500">Använd din Discord-profilbild</p>
-                </div>
-                {avatarMode === "discord" && <Check size={14} className="ml-auto text-neon-cyan" />}
+                Klar
               </button>
-
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all ${
-                  avatarMode === "custom"
-                    ? "border-neon-cyan/40 bg-neon-cyan/10 text-white"
-                    : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                } disabled:opacity-50`}
-              >
-                <Upload size={15} className="shrink-0" />
-                <div>
-                  <p className="font-semibold">
-                    {uploading ? "Laddar upp..." : avatarMode === "custom" ? "Byt bild" : "Ladda upp egen bild"}
-                  </p>
-                  <p className="text-[11px] text-slate-500">PNG, JPG, WebP — max 2 MB</p>
-                </div>
-                {avatarMode === "custom" && !uploading && <Check size={14} className="ml-auto text-neon-cyan" />}
-              </button>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
             </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="shrink-0 border-t border-white/5 px-5 py-4">
-          <button
-            onClick={() => setOpen(false)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-neon-cyan/30 hover:bg-neon-cyan/10 hover:text-white"
-          >
-            Stäng
-          </button>
-          <p className="mt-2 text-center text-[10px] text-slate-600">Ändringar sparas automatiskt</p>
-        </div>
-      </div>
+      )}
     </>
   );
 }
