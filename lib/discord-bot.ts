@@ -123,9 +123,17 @@ export async function sendMemberJoinAnnouncement(member: {
     ? `<t:${joinedTs}:F> (<t:${joinedTs}:R>)`
     : "okänd tid";
 
+  let defaultIndex = 0;
+  try {
+    defaultIndex = Number(BigInt(member.discordId) >> BigInt(22)) % 6;
+  } catch {
+    // Non-numeric ID (e.g. CUID from test ping) — pick index from char codes
+    defaultIndex = member.discordId.split("").reduce((s, c) => s + c.charCodeAt(0), 0) % 6;
+  }
+
   const avatarUrl = member.avatarHash
     ? `https://cdn.discordapp.com/avatars/${member.discordId}/${member.avatarHash}.png?size=256`
-    : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(member.discordId) >> BigInt(22)) % 6}.png`;
+    : `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
 
   await sendToChannel(channelId, {
     embeds: [
