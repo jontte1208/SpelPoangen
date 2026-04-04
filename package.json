@@ -12,6 +12,7 @@
     "lint": "next lint",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "cron:discord-joins": "tsx scripts/trigger-discord-joins-cron.ts",
     "user:make-admin": "tsx scripts/set-admin-by-discord-id.ts",
     "postinstall": "prisma generate"
   },

@@ -105,6 +105,28 @@ export async function sendLootDropEmbed(item: {
   });
 }
 
+export async function sendMemberJoinAnnouncement(member: {
+  discordId: string;
+  username: string;
+  joinedAt: string;
+  channelId?: string;
+}): Promise<void> {
+  const channelId =
+    member.channelId ??
+    process.env.DISCORD_MEMBER_JOIN_CHANNEL_ID ??
+    "1489720997509595177";
+  if (!channelId) return;
+
+  const joinedTs = Math.floor(new Date(member.joinedAt).getTime() / 1000);
+  const when = Number.isFinite(joinedTs)
+    ? `<t:${joinedTs}:F> (<t:${joinedTs}:R>)`
+    : "okänd tid";
+
+  await sendToChannel(channelId, {
+    content: `👋 **${member.username}** joinade servern!\n🕒 ${when}\n🆔 \`${member.discordId}\``,
+  });
+}
+
 // ─── Leaderboard (auto-updating pinned message) ────────────────────────────────
 
 export async function updateLeaderboardMessage(
