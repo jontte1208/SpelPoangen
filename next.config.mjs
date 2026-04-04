@@ -8,6 +8,7 @@ const nextConfig = {
       { protocol: "https", hostname: "cdn.discordapp.com" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
 };
