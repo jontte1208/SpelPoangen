@@ -139,6 +139,7 @@ export default function AdminDashboard() {
   const [doubleXPEndsAt, setDoubleXPEndsAt] = useState<string | null>(null);
   const [doubleXPTimer, setDoubleXPTimer] = useState<number>(0);
   const [doubleXPUpdating, setDoubleXPUpdating] = useState(false);
+  const [discordJoinSyncing, setDiscordJoinSyncing] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastActive, setBroadcastActive] = useState(false);
   const [broadcastSaving, setBroadcastSaving] = useState(false);
@@ -256,6 +257,37 @@ export default function AdminDashboard() {
     }
 
     setDoubleXPUpdating(false);
+  }
+
+  async function runDiscordJoinSyncNow() {
+    setDiscordJoinSyncing(true);
+    try {
+      const res = await fetch("/api/admin/discord-joins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sendTestPing: true }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast(data?.error ?? "Kunde inte köra Discord join-check", "error");
+        return;
+      }
+
+      const data = await res.json();
+      if (data.initialized) {
+        showToast("Testmeddelande skickat. Join-check initierad för kommande joins.", "success");
+      } else {
+        showToast(
+          `Testmeddelande skickat. Join-check klar: ${data.announced ?? 0} nya medlem(mar) annonserade.`,
+          "success"
+        );
+      }
+    } catch {
+      showToast("Nätverksfel vid Discord join-check", "error");
+    } finally {
+      setDiscordJoinSyncing(false);
+    }
   }
 
   async function publishBroadcast() {
@@ -666,6 +698,15 @@ export default function AdminDashboard() {
               ) : (
                 <span>Starta Double XP (1h)</span>
               )}
+            </button>
+
+            <button
+              onClick={runDiscordJoinSyncNow}
+              disabled={discordJoinSyncing}
+              className="flex items-center gap-2.5 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 py-2.5 text-sm font-semibold text-blue-300 transition-all duration-200 hover:bg-blue-500/20 disabled:opacity-60"
+            >
+              {discordJoinSyncing ? <Loader2 size={15} className="animate-spin" /> : <Users size={15} />}
+              <span>{discordJoinSyncing ? "Skickar test-join..." : "Testa Discord join-meddelande"}</span>
             </button>
           </div>
         </div>

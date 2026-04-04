@@ -9,7 +9,6 @@ import { signOut } from "next-auth/react";
 import { cn, xpForLevel } from "@/lib/utils";
 import { TIER_COLORS, TIER_LABELS } from "@/types/user";
 import type { Tier } from "@/types/user";
-import { getLevelMilestone } from "@/lib/level-milestones";
 
 const navItems = [
   { href: "/dashboard", label: "Hem" },
@@ -208,19 +207,9 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
                       <p className="text-xs font-semibold text-white">{user.name ?? "Gamer"}</p>
                       {isAdmin && <OwnerBadge />}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-neon-cyan">
-                        LVL {user.level}
-                      </p>
-                      {(() => {
-                        const m = getLevelMilestone(user.level);
-                        return (
-                          <span className={cn("rounded-full border px-1.5 py-px text-[8px] font-semibold uppercase tracking-[0.1em]", m.textColor, m.bgColor, m.borderColor)}>
-                            {m.label}
-                          </span>
-                        );
-                      })()}
-                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-neon-cyan">
+                      LVL {user.level}
+                    </p>
                   </div>
                   <ChevronDown
                     size={14}
