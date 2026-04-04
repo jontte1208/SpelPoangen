@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck, Zap, Megaphone } from "lucide-react";
+import { Coins, Gem, User, Settings, LogOut, ChevronDown, ShieldCheck, Zap, Megaphone, Crown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -184,6 +184,15 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
             </nav>
 
             <div className="flex items-center gap-2">
+              {user.tier !== "PREMIUM" && (
+                <Link
+                  href="/premium"
+                  className="hidden items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-400/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.25)] transition-all hover:bg-amber-400/20 hover:shadow-[0_0_18px_rgba(251,191,36,0.4)] lg:flex"
+                >
+                  <Crown size={13} className="text-amber-300" />
+                  Premium
+                </Link>
+              )}
               <div ref={dropdownRef} className="relative">
                 <button
                   onClick={() => setDropdownOpen((prev) => !prev)}
@@ -280,19 +289,26 @@ export default function PlatformShell({ user, children }: PlatformShellProps) {
           <nav className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3 lg:hidden">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
+              const isPremiumLink = item.premium && user.tier !== "PREMIUM";
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "rounded-full border border-transparent px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.22em] transition-all duration-300",
-                    isActive
-                      ? "border-neon-cyan/25 bg-neon-cyan/10 text-white"
-                      : "text-neon-cyan/85 hover:border-neon-cyan/20 hover:bg-white/5 hover:text-white",
-                    item.premium && !isActive && "bg-neon-cyan/5"
+                    "rounded-full border px-3.5 py-2 text-xs font-bold uppercase tracking-[0.22em] transition-all duration-300",
+                    isActive && !isPremiumLink && "border-neon-cyan/25 bg-neon-cyan/10 text-white",
+                    !isActive && !isPremiumLink && "border-transparent text-neon-cyan/85 hover:border-neon-cyan/20 hover:bg-white/5 hover:text-white",
+                    isPremiumLink && !isActive && "border-amber-400/50 bg-amber-400/10 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.2)]",
+                    isPremiumLink && isActive && "border-amber-400/60 bg-amber-400/20 text-amber-200",
+                    item.premium && user.tier === "PREMIUM" && !isActive && "border-transparent text-neon-cyan/85 hover:border-neon-cyan/20 hover:bg-white/5 hover:text-white",
                   )}
                 >
-                  {item.label}
+                  {isPremiumLink ? (
+                    <span className="flex items-center gap-1.5">
+                      <Crown size={11} />
+                      {item.label}
+                    </span>
+                  ) : item.label}
                 </Link>
               );
             })}
