@@ -75,7 +75,7 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: 
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-all hover:border-neon-cyan/30 hover:bg-neon-cyan/10 hover:text-white"
+        className="flex items-center gap-1.5 rounded-full border border-white/30 bg-black/50 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:border-neon-cyan/50 hover:bg-neon-cyan/15 hover:text-neon-cyan"
       >
         <Pencil size={12} />
         Redigera profil

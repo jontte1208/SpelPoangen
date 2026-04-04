@@ -22,9 +22,11 @@ export async function GET(req: NextRequest) {
   const limit = Number.isFinite(requestedLimit)
     ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 30)
     : 12;
+  const filterUserId = searchParams.get("userId") ?? undefined;
 
   const [forumPosts, questClaims, affiliateClicks, purchases] = await Promise.all([
     prisma.forumPost.findMany({
+      where: filterUserId ? { authorId: filterUserId } : undefined,
       select: {
         id: true,
         title: true,
@@ -35,6 +37,7 @@ export async function GET(req: NextRequest) {
       take: limit,
     }),
     prisma.userWeeklyQuestClaim.findMany({
+      where: filterUserId ? { userId: filterUserId } : undefined,
       select: {
         id: true,
         questId: true,
@@ -46,6 +49,7 @@ export async function GET(req: NextRequest) {
       take: limit,
     }),
     prisma.affiliateClick.findMany({
+      where: filterUserId ? { userId: filterUserId } : undefined,
       select: {
         id: true,
         createdAt: true,
@@ -56,6 +60,7 @@ export async function GET(req: NextRequest) {
       take: limit,
     }),
     prisma.purchase.findMany({
+      where: filterUserId ? { userId: filterUserId } : undefined,
       select: {
         id: true,
         createdAt: true,

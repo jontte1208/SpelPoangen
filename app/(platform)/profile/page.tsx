@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { xpForLevel } from "@/lib/utils";
 import { getBanner } from "@/lib/banners";
-import { Zap, Coins, Flame, Medal, ShoppingBag, CheckCircle2, MessageSquare, Star } from "lucide-react";
+import { Zap, Coins, Flame, Medal, MessageSquare, Star, CheckCircle2 } from "lucide-react";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
+import { ProfileActivity } from "@/components/profile/ProfileActivity";
 
 export const metadata = { title: "Min profil" };
 
@@ -107,7 +108,7 @@ export default async function ProfilePage() {
           style={{ background: banner.style }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_50%,rgba(0,245,255,0.08)_0%,transparent_70%)]" />
-          <div className="absolute right-4 top-4">
+          <div className="absolute bottom-4 right-4">
             <ProfileEditor
               currentBannerKey={user.bannerKey}
               currentImage={user.customImage}
@@ -258,55 +259,7 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      {/* Recent activity */}
-      <section className="glass-panel rounded-[1.75rem] bg-slate-900/40 p-6">
-        <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-slate-400">
-          Senaste Aktivitet
-        </h2>
-
-        {activity.length === 0 ? (
-          <p className="text-sm text-slate-500">Ingen aktivitet ännu.</p>
-        ) : (
-          <ul className="space-y-2">
-            {activity.map((item, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3"
-              >
-                {/* Icon */}
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-                  item.kind === "quest"
-                    ? "border-neon-cyan/20 bg-neon-cyan/10"
-                    : "border-amber-300/20 bg-amber-400/10"
-                }`}>
-                  {item.kind === "quest"
-                    ? <CheckCircle2 size={15} className="text-neon-cyan" />
-                    : <ShoppingBag size={15} className="text-amber-300" />
-                  }
-                </div>
-
-                {/* Text */}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">
-                    {item.kind === "quest" ? item.title : item.name}
-                  </p>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                    {item.kind === "quest"
-                      ? `Quest · +${item.rewardXP} XP${item.rewardCoins ? ` · +${item.rewardCoins} coins` : ""}`
-                      : `Köp · ${item.coinsSpent} coins`
-                    }
-                  </p>
-                </div>
-
-                {/* Date */}
-                <time className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-slate-600">
-                  {item.date.toLocaleDateString("sv-SE")}
-                </time>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <ProfileActivity userId={user.id} />
 
     </main>
   );
