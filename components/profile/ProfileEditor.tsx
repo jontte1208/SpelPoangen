@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BANNERS } from "@/lib/banners";
 import { Pencil, X, Check, Upload, MessageCircle, CheckCircle2 } from "lucide-react";
@@ -15,6 +16,7 @@ type AvatarMode = "discord" | "custom";
 
 export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: Props) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState(currentBannerKey);
   const [avatarMode, setAvatarMode] = useState<AvatarMode>(currentImage ? "custom" : "discord");
   const [customImageUrl, setCustomImageUrl] = useState(currentImage ?? "");
@@ -22,6 +24,8 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: 
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => { setMounted(true); }, []);
 
   const previewImage = avatarMode === "custom" && customImageUrl ? customImageUrl : discordImage;
 
@@ -77,9 +81,9 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: 
         Redigera profil
       </button>
 
-      {open && (
+      {mounted && open && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
@@ -213,7 +217,8 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: 
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
