@@ -28,16 +28,6 @@ export default async function ProfilePage() {
       affiliateCode: true,
       bannerKey: true,
       customImage: true,
-      quests: {
-        orderBy: { updatedAt: "desc" },
-        take: 5,
-        include: { quest: { select: { title: true, rewardXP: true, rewardCoins: true } } },
-      },
-      orders: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: { shopItem: { select: { name: true, coinCost: true } } },
-      },
     },
   });
 
@@ -66,29 +56,6 @@ export default async function ProfilePage() {
   const ringRadius = 54;
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringOffset = ringCircumference * (1 - progress);
-
-  // Merge and sort activity
-  type ActivityItem =
-    | { kind: "quest"; title: string; rewardXP: number; rewardCoins: number; date: Date }
-    | { kind: "order"; name: string; coinsSpent: number; date: Date };
-
-  const activity: ActivityItem[] = [
-    ...(dbUser?.quests ?? []).map((uq) => ({
-      kind: "quest" as const,
-      title: uq.quest.title,
-      rewardXP: uq.quest.rewardXP,
-      rewardCoins: uq.quest.rewardCoins,
-      date: uq.updatedAt,
-    })),
-    ...(dbUser?.orders ?? []).map((o) => ({
-      kind: "order" as const,
-      name: o.shopItem.name,
-      coinsSpent: o.coinsSpent,
-      date: o.createdAt,
-    })),
-  ]
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .slice(0, 6);
 
   const initials = (user.name ?? "SP")
     .split(" ")
