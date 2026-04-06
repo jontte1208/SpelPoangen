@@ -1,0 +1,9 @@
+[deploy]
+startCommand = "npm run start"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+
+[[crons]]
+name = "discord-join-sync"
+schedule = "*/5 * * * *"
+command = "npm run cron:discord-joins"
