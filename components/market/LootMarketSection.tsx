@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { handleAffiliateClick } from "@/app/(platform)/shop/actions";
 
 type HomeProduct = {
@@ -49,10 +49,19 @@ function formatExpiry(expiresAt: Date | string | null): string | null {
   return `Utgår om ${diffM} min`;
 }
 
-export default function LootMarketSection({ inDashboard = false, products = [] }: LootMarketSectionProps) {
+export default function LootMarketSection({ inDashboard = false, products: initialProducts }: LootMarketSectionProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
   const [activeBuy, setActiveBuy] = useState<string | null>(null);
+  const [products, setProducts] = useState<HomeProduct[]>(initialProducts ?? []);
+
+  useEffect(() => {
+    if (initialProducts !== undefined) return;
+    fetch("/api/products/home")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setProducts(data); })
+      .catch(() => {});
+  }, [initialProducts]);
 
   function handleBuyNow(productId: string, affiliateLink: string) {
     setActiveBuy(productId);
