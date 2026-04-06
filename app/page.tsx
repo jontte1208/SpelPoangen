@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import LootMarketSection from "@/components/market/LootMarketSection";
 import BroadcastBanner from "@/components/market/BroadcastBanner";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const now = new Date();
 
