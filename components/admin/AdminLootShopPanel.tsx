@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Plus, Pencil, Trash2, X, Loader2, Package, Coins,
-  CheckCircle, XCircle, ToggleLeft, ToggleRight, TrendingUp, ShoppingBag
+  CheckCircle, XCircle, ToggleLeft, ToggleRight, TrendingUp, ShoppingBag, ImagePlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +90,8 @@ export default function AdminLootShopPanel() {
   const [fulfillCode, setFulfillCode] = useState("");
   const [fulfillNote, setFulfillNote] = useState("");
   const [fulfilling, setFulfilling] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -169,6 +171,25 @@ export default function AdminLootShopPanel() {
       body: JSON.stringify({ isActive: !item.isActive }),
     });
     if (res.ok) setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, isActive: !i.isActive } : i));
+  }
+
+  async function handleImageUpload(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/loot-shop/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        setForm((f) => ({ ...f, imageUrl: data.url }));
+      } else {
+        setError(data.error ?? "Uppladdning misslyckades");
+      }
+    } catch {
+      setError("Nätverksfel vid uppladdning");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleFulfill() {
@@ -270,8 +291,40 @@ export default function AdminLootShopPanel() {
                       <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-neon-cyan/50" />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">Bild-URL (valfri)</label>
-                      <input type="url" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-neon-cyan/50" placeholder="https://..." />
+                      <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">Bild</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={form.imageUrl}
+                          onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                          className="flex-1 rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-neon-cyan/50"
+                          placeholder="https://... eller ladda upp nedan"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="flex items-center gap-2 rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 px-4 py-2.5 text-sm font-semibold text-neon-cyan hover:bg-neon-cyan/20 disabled:opacity-50"
+                        >
+                          {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                          {uploading ? "Laddar..." : "Ladda upp"}
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file);
+                            e.target.value = "";
+                          }}
+                        />
+                      </div>
+                      {form.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={form.imageUrl} alt="Förhandsgranskning" className="mt-2 h-24 w-24 rounded-xl border border-white/10 object-contain bg-slate-950 p-1" />
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">Discord Roll-ID (valfri, tilldelas automatiskt)</label>
