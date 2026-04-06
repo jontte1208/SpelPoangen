@@ -13,6 +13,7 @@ import type { Tier } from "@/types/user";
 const navItems = [
   { href: "/dashboard", label: "Hem" },
   { href: "/products", label: "Produkter" },
+  { href: "/loot-shop", label: "Loot Shop" },
   { href: "/quests", label: "Quests" },
   { href: "/forum", label: "Forum" },
   { href: "/leaderboard", label: "Topplista" },

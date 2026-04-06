@@ -23,11 +23,13 @@ import {
   MousePointerClick,
   Trophy,
   Megaphone,
+  ShoppingBag,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import AdminQuestPanel from "./AdminQuestPanel";
 import AdminProductPanel from "./AdminProductPanel";
+import AdminLootShopPanel from "./AdminLootShopPanel";
 
 type AdminUser = {
   id: string;
@@ -111,7 +113,7 @@ function StatCard({
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"quests" | "products" | "users">("users");
+  const [activeTab, setActiveTab] = useState<"quests" | "products" | "users" | "lootshop">("users");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState("ALL");
@@ -767,6 +769,7 @@ export default function AdminDashboard() {
               { key: "users", label: "Användare", icon: Users },
               { key: "quests", label: "Utmaningar", icon: Trophy },
               { key: "products", label: "Produkter", icon: MousePointerClick },
+              { key: "lootshop", label: "Loot Shop", icon: ShoppingBag },
             ] as const
           ).map(({ key, label, icon: Icon }) => (
             <button
@@ -794,6 +797,12 @@ export default function AdminDashboard() {
         {activeTab === "products" && (
           <div className="mb-8">
             <AdminProductPanel />
+          </div>
+        )}
+
+        {activeTab === "lootshop" && (
+          <div className="mb-8">
+            <AdminLootShopPanel />
           </div>
         )}
 

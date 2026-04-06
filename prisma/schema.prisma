@@ -98,6 +98,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum ShopItemCategory {
+  DIGITAL
+  PHYSICAL
+}
+
 // ------------------------------------
 // Core models
 // ------------------------------------
@@ -113,11 +118,12 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Gamification
-  xp      Int      @default(0)
-  level   Int      @default(1)
-  coins   Int      @default(0) // earned in-platform currency
-  gold    Int      @default(0) // premium currency
-  streak  Int      @default(0)
+  xp              Int      @default(0)
+  level           Int      @default(1)
+  coins           Int      @default(0) // earned in-platform currency
+  gold            Int      @default(0) // premium currency
+  streak          Int      @default(0)
+  totalCoinsEarned Int     @default(0)
   lastLogin DateTime?
 
   // Tier & affiliate
@@ -215,28 +221,34 @@ model Purchase {
 }
 
 model ShopItem {
-  id         String   @id @default(cuid())
-  name       String
-  coinCost   Int      @default(0)
-  goldCost   Int      @default(0)
-  stock      Int      @default(-1) // -1 = unlimited
-  isPhysical Boolean  @default(false)
-  imageUrl   String?
-  createdAt  DateTime @default(now())
+  id              String           @id @default(cuid())
+  name            String
+  description     String           @db.Text
+  coinCost        Int              @default(0)
+  stock           Int              @default(-1) // -1 = unlimited
+  category        ShopItemCategory @default(DIGITAL)
+  discordRoleId   String?          // auto-assign Discord role on purchase
+  imageUrl        String?
+  isActive        Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   orders Order[]
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String
-  shopItemId String
-  quantity   Int         @default(1)
-  coinsSpent Int
-  status     OrderStatus @default(PENDING)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  fulfilledAt DateTime?
+  id              String      @id @default(cuid())
+  userId          String
+  shopItemId      String
+  quantity        Int         @default(1)
+  coinsSpent      Int
+  status          OrderStatus @default(PENDING)
+  redemptionCode  String?     // filled by admin for physical items
+  adminNote       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  fulfilledAt     DateTime?
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
