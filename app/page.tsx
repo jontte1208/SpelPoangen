@@ -5,22 +5,24 @@ import BroadcastBanner from "@/components/market/BroadcastBanner";
 export default async function HomePage() {
   const now = new Date();
 
-  let products: {
+  type SerializedProduct = {
     id: string;
     name: string;
     priceSek: number;
     salePriceSek: number | null;
     isOnSale: boolean;
     isFlashDeal: boolean;
-    expiresAt: Date | null;
+    expiresAt: string | null;
     xpReward: number;
     coinReward: number;
     affiliateLink: string;
     imageUrl: string | null;
-  }[] = [];
+  };
+
+  let products: SerializedProduct[] = [];
 
   try {
-    products = await prisma.product.findMany({
+    const raw = await prisma.product.findMany({
       where: {
         isActive: true,
         showOnHome: true,
@@ -41,6 +43,7 @@ export default async function HomePage() {
         imageUrl: true,
       },
     });
+    products = raw.map((p) => ({ ...p, expiresAt: p.expiresAt?.toISOString() ?? null }));
   } catch {}
 
   return (

@@ -4,7 +4,16 @@ import { prisma } from "@/lib/prisma";
 export const metadata = { title: "Produkter" };
 
 export default async function ProductsPage() {
-  let products: { name: string; price: string; image: string; affiliateLink: string }[] = [];
+  let products: {
+    name: string;
+    price: string;
+    salePrice?: string;
+    isOnSale: boolean;
+    isFlashDeal: boolean;
+    expiresAt: string | null;
+    image: string;
+    affiliateLink: string;
+  }[] = [];
 
   try {
     const now = new Date();
@@ -19,6 +28,8 @@ export default async function ProductsPage() {
         priceSek: true,
         salePriceSek: true,
         isOnSale: true,
+        isFlashDeal: true,
+        expiresAt: true,
         imageUrl: true,
         affiliateLink: true,
       },
@@ -32,6 +43,8 @@ export default async function ProductsPage() {
       price: fmt(p.priceSek),
       salePrice: p.isOnSale && p.salePriceSek ? fmt(p.salePriceSek) : undefined,
       isOnSale: p.isOnSale,
+      isFlashDeal: p.isFlashDeal,
+      expiresAt: p.expiresAt?.toISOString() ?? null,
       image:
         p.imageUrl ??
         "https://images.unsplash.com/photo-1593640408182-31c228c5d4b0?auto=format&fit=crop&w=1200&q=80",
