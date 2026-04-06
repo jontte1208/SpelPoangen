@@ -16,6 +16,7 @@ const createSchema = z.object({
   isPremiumOnly: z.boolean().default(false),
   isFlashDeal: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  showOnHome: z.boolean().default(false),
 });
 
 export async function GET() {
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
       isPremiumOnly: parsed.data.isPremiumOnly,
       isFlashDeal: parsed.data.isFlashDeal,
       isActive: parsed.data.isActive,
+      showOnHome: parsed.data.showOnHome,
     },
   });
 

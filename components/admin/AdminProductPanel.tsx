@@ -31,6 +31,7 @@ type ProductRow = {
   isPremiumOnly: boolean;
   isFlashDeal: boolean;
   isActive: boolean;
+  showOnHome: boolean;
   createdAt: string;
   _count: { affiliateClicks: number; purchases: number };
 };
@@ -47,6 +48,7 @@ type FormData = {
   isPremiumOnly: boolean;
   isFlashDeal: boolean;
   isActive: boolean;
+  showOnHome: boolean;
 };
 
 const EMPTY_FORM: FormData = {
@@ -61,6 +63,7 @@ const EMPTY_FORM: FormData = {
   isPremiumOnly: false,
   isFlashDeal: false,
   isActive: true,
+  showOnHome: false,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -118,6 +121,7 @@ export default function AdminProductPanel() {
       isPremiumOnly: product.isPremiumOnly,
       isFlashDeal: product.isFlashDeal,
       isActive: product.isActive,
+      showOnHome: product.showOnHome,
     });
     setShowForm(true);
     setError(null);
@@ -410,6 +414,20 @@ export default function AdminProductPanel() {
                   <ToggleLeft size={22} className="text-slate-500" />
                 )}
                 Flash Deal
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={form.showOnHome}
+                  onChange={(e) => setForm({ ...form, showOnHome: e.target.checked })}
+                  className="sr-only"
+                />
+                {form.showOnHome ? (
+                  <ToggleRight size={22} className="text-neon-cyan" />
+                ) : (
+                  <ToggleLeft size={22} className="text-slate-500" />
+                )}
+                Visa på Hem
               </label>
             </div>
 

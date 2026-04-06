@@ -16,6 +16,7 @@ const updateSchema = z.object({
   isPremiumOnly: z.boolean().optional(),
   isFlashDeal: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  showOnHome: z.boolean().optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };

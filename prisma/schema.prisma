@@ -176,6 +176,7 @@ model Product {
   isPremiumOnly Boolean  @default(false)
   isFlashDeal   Boolean  @default(false)
   isActive      Boolean  @default(true)
+  showOnHome    Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   affiliateClicks AffiliateClick[]
