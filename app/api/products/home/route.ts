@@ -17,6 +17,7 @@ export async function GET() {
         priceSek: true,
         salePriceSek: true,
         isOnSale: true,
+        isFlashDeal: true,
         expiresAt: true,
         xpReward: true,
         coinReward: true,

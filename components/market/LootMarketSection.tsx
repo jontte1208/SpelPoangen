@@ -3,12 +3,8 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { handleAffiliateClick } from "@/app/(platform)/shop/actions";
-
-type LootMarketSectionProps = {
-  inDashboard?: boolean;
-};
 
 type HomeProduct = {
   id: string;
@@ -16,11 +12,17 @@ type HomeProduct = {
   priceSek: number;
   salePriceSek: number | null;
   isOnSale: boolean;
-  expiresAt: string | null;
+  isFlashDeal: boolean;
+  expiresAt: Date | string | null;
   xpReward: number;
   coinReward: number;
   affiliateLink: string;
   imageUrl: string | null;
+};
+
+type LootMarketSectionProps = {
+  inDashboard?: boolean;
+  products?: HomeProduct[];
 };
 
 function formatSEK(amount: number) {
@@ -31,31 +33,32 @@ function formatSEK(amount: number) {
   }).format(amount);
 }
 
-export default function LootMarketSection({ inDashboard = false }: LootMarketSectionProps) {
+function formatExpiry(expiresAt: Date | string | null): string | null {
+  if (!expiresAt) return null;
+  const date = new Date(expiresAt);
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  if (diffMs <= 0) return null;
+
+  const diffH = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffD = Math.floor(diffH / 24);
+
+  if (diffD > 0) return `Utgår om ${diffD} dag${diffD > 1 ? "ar" : ""}`;
+  if (diffH > 0) return `Utgår om ${diffH} tim`;
+  const diffM = Math.floor(diffMs / (1000 * 60));
+  return `Utgår om ${diffM} min`;
+}
+
+export default function LootMarketSection({ inDashboard = false, products = [] }: LootMarketSectionProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
   const [activeBuy, setActiveBuy] = useState<string | null>(null);
-  const [products, setProducts] = useState<HomeProduct[]>([]);
-
-  useEffect(() => {
-    fetch("/api/products/home")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setProducts(data);
-      })
-      .catch(() => {});
-  }, []);
 
   function handleBuyNow(productId: string, affiliateLink: string) {
     setActiveBuy(productId);
-
     startTransition(async () => {
       const result = await handleAffiliateClick(affiliateLink);
-
-      if (result.url) {
-        window.open(result.url, "_blank", "noopener,noreferrer");
-      }
-
+      if (result.url) window.open(result.url, "_blank", "noopener,noreferrer");
       setActiveBuy(null);
     });
   }
@@ -96,11 +99,7 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
               ) : (
                 <button
                   type="button"
-                  onClick={() =>
-                    signIn("discord", {
-                      callbackUrl: "/discord/invite?next=/dashboard",
-                    })
-                  }
+                  onClick={() => signIn("discord", { callbackUrl: "/discord/invite?next=/dashboard" })}
                   className="inline-flex items-center justify-center rounded-xl border border-[#5865F2]/50 bg-[#5865F2]/20 px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition-all hover:opacity-90"
                 >
                   Logga in med Discord
@@ -117,71 +116,86 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
         </p>
       ) : (
         <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {products.map((product, index) => (
-            <motion.article
-              key={product.id}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.05 * index }}
-              className={`group overflow-hidden rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft ${
-                index === 0 ? "sm:col-span-2 xl:col-span-2" : ""
-              }`}
-            >
-              <div className={`relative flex items-center justify-center bg-slate-950/60 ${index === 0 ? "h-56" : "h-44"}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={product.imageUrl ?? "https://images.unsplash.com/photo-1593640408182-31c228c5d4b0?auto=format&fit=crop&w=1200&q=80"}
-                  alt={product.name}
-                  className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]"
-                />
-                {product.isOnSale && (
-                  <span className="absolute left-3 top-3 rounded-full border border-red-400/50 bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400 backdrop-blur-sm">
-                    REA
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-4 p-5">
-                {index === 0 && (
-                  <span className="inline-flex rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-neon-cyan">
-                    Daily Deal
-                  </span>
-                )}
-
-                <h3 className="font-display text-xl font-semibold text-white">{product.name}</h3>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-neon-cyan/25 bg-neon-cyan/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-neon-cyan">
-                    +{product.xpReward} XP
-                  </span>
-                  <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
-                    +{product.coinReward} Coins
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    {product.isOnSale && product.salePriceSek ? (
-                      <>
-                        <span className="font-display text-2xl font-semibold text-red-400">{formatSEK(product.salePriceSek)}</span>
-                        <span className="text-sm text-slate-500 line-through">{formatSEK(product.priceSek)}</span>
-                      </>
-                    ) : (
-                      <span className="font-display text-2xl font-semibold text-neon-cyan">{formatSEK(product.priceSek)}</span>
+          {products.map((product, index) => {
+            const expiryLabel = formatExpiry(product.expiresAt);
+            return (
+              <motion.article
+                key={product.id}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.05 * index }}
+                className={`group overflow-hidden rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft ${
+                  index === 0 ? "sm:col-span-2 xl:col-span-2" : ""
+                }`}
+              >
+                <div className={`relative flex items-center justify-center bg-slate-950/60 ${index === 0 ? "h-56" : "h-44"}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={product.imageUrl ?? "https://images.unsplash.com/photo-1593640408182-31c228c5d4b0?auto=format&fit=crop&w=1200&q=80"}
+                    alt={product.name}
+                    className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+                    {product.isOnSale && (
+                      <span className="rounded-full border border-red-400/50 bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400 backdrop-blur-sm">
+                        REA
+                      </span>
+                    )}
+                    {product.isFlashDeal && (
+                      <span className="rounded-full border border-amber-400/50 bg-amber-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-400 backdrop-blur-sm">
+                        ⚡ Flash
+                      </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleBuyNow(product.id, product.affiliateLink)}
-                    disabled={isPending && activeBuy === product.id}
-                    className="rounded-xl border border-neon-cyan/35 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-neon-cyan transition-colors hover:bg-neon-cyan/10"
-                  >
-                    {isPending && activeBuy === product.id ? "LADDAR..." : "Köp Nu"}
-                  </button>
+                  {expiryLabel && (
+                    <span className="absolute bottom-2 right-3 rounded-full border border-orange-400/40 bg-slate-950/80 px-2.5 py-1 text-[10px] font-semibold text-orange-400 backdrop-blur-sm">
+                      {expiryLabel}
+                    </span>
+                  )}
                 </div>
-              </div>
-            </motion.article>
-          ))}
+
+                <div className="space-y-4 p-5">
+                  {index === 0 && (
+                    <span className="inline-flex rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-neon-cyan">
+                      Daily Deal
+                    </span>
+                  )}
+
+                  <h3 className="font-display text-xl font-semibold text-white">{product.name}</h3>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-neon-cyan/25 bg-neon-cyan/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-neon-cyan">
+                      +{product.xpReward} XP
+                    </span>
+                    <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                      +{product.coinReward} Coins
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      {product.isOnSale && product.salePriceSek ? (
+                        <>
+                          <span className="font-display text-2xl font-semibold text-red-400">{formatSEK(product.salePriceSek)}</span>
+                          <span className="text-sm text-slate-500 line-through">{formatSEK(product.priceSek)}</span>
+                        </>
+                      ) : (
+                        <span className="font-display text-2xl font-semibold text-neon-cyan">{formatSEK(product.priceSek)}</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleBuyNow(product.id, product.affiliateLink)}
+                      disabled={isPending && activeBuy === product.id}
+                      className="rounded-xl border border-neon-cyan/35 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-neon-cyan transition-colors hover:bg-neon-cyan/10"
+                    >
+                      {isPending && activeBuy === product.id ? "LADDAR..." : "Köp Nu"}
+                    </button>
+                  </div>
+                </div>
+              </motion.article>
+            );
+          })}
         </section>
       )}
     </>
