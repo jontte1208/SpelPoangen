@@ -28,6 +28,7 @@ export default async function ProfilePage() {
       affiliateCode: true,
       bannerKey: true,
       customImage: true,
+      unlockedBanners: { select: { bannerKey: true } },
     },
   });
 
@@ -80,6 +81,7 @@ export default async function ProfilePage() {
               currentBannerKey={user.bannerKey}
               currentImage={user.customImage}
               discordImage={user.image ?? null}
+              unlockedBannerKeys={dbUser?.unlockedBanners.map((b) => b.bannerKey) ?? []}
             />
           </div>
         </div>

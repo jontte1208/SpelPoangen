@@ -4,17 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BANNERS } from "@/lib/banners";
-import { Pencil, X, Check, Upload, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Pencil, X, Check, Upload, MessageCircle, CheckCircle2, Lock } from "lucide-react";
 
 interface Props {
   currentBannerKey: string;
   currentImage: string | null;
   discordImage: string | null;
+  unlockedBannerKeys: string[];
 }
 
 type AvatarMode = "discord" | "custom";
 
-export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: Props) {
+export function ProfileEditor({ currentBannerKey, currentImage, discordImage, unlockedBannerKeys }: Props) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState(currentBannerKey);
@@ -115,27 +116,38 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage }: 
                   Välj banner — sparas direkt
                 </p>
                 <div className="grid grid-cols-4 gap-2">
-                  {BANNERS.map((banner) => (
-                    <button
-                      key={banner.key}
-                      onClick={() => selectBanner(banner.key)}
-                      className="relative overflow-hidden rounded-xl border-2 transition-all duration-150"
-                      style={{
-                        borderColor: selectedBanner === banner.key ? "#00f5ff" : "rgba(255,255,255,0.07)",
-                        boxShadow: selectedBanner === banner.key ? "0 0 12px rgba(0,245,255,0.2)" : "none",
-                      }}
-                    >
-                      <div className="h-14 w-full" style={{ background: banner.style }} />
-                      {selectedBanner === banner.key && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                          <Check size={16} className="text-neon-cyan drop-shadow" />
-                        </div>
-                      )}
-                      <p className="bg-black/50 py-1 text-center text-[9px] font-semibold uppercase tracking-[0.08em] text-white/80">
-                        {banner.label}
-                      </p>
-                    </button>
-                  ))}
+                  {BANNERS.map((banner) => {
+                    const isLocked = banner.premium && !unlockedBannerKeys.includes(banner.key);
+                    return (
+                      <button
+                        key={banner.key}
+                        onClick={() => !isLocked && selectBanner(banner.key)}
+                        disabled={isLocked}
+                        title={isLocked ? "Lås upp i Loot Shop" : banner.label}
+                        className="relative overflow-hidden rounded-xl border-2 transition-all duration-150 disabled:cursor-not-allowed"
+                        style={{
+                          borderColor: selectedBanner === banner.key ? "#00f5ff" : "rgba(255,255,255,0.07)",
+                          boxShadow: selectedBanner === banner.key ? "0 0 12px rgba(0,245,255,0.2)" : "none",
+                          opacity: isLocked ? 0.45 : 1,
+                        }}
+                      >
+                        <div className="h-14 w-full" style={{ background: banner.style }} />
+                        {selectedBanner === banner.key && !isLocked && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <Check size={16} className="text-neon-cyan drop-shadow" />
+                          </div>
+                        )}
+                        {isLocked && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <Lock size={14} className="text-white/70" />
+                          </div>
+                        )}
+                        <p className="bg-black/50 py-1 text-center text-[9px] font-semibold uppercase tracking-[0.08em] text-white/80">
+                          {banner.label}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -15,6 +15,7 @@ type ShopItem = {
   stock: number;
   category: "DIGITAL" | "PHYSICAL";
   discordRoleId: string | null;
+  unlockedBannerKeys: string | null;
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
@@ -51,6 +52,7 @@ type ItemForm = {
   stock: number;
   category: "DIGITAL" | "PHYSICAL";
   discordRoleId: string;
+  unlockedBannerKeys: string;
   imageUrl: string;
   isActive: boolean;
   sortOrder: number;
@@ -63,6 +65,7 @@ const EMPTY_FORM: ItemForm = {
   stock: -1,
   category: "DIGITAL",
   discordRoleId: "",
+  unlockedBannerKeys: "",
   imageUrl: "",
   isActive: true,
   sortOrder: 0,
@@ -127,6 +130,7 @@ export default function AdminLootShopPanel() {
       stock: item.stock,
       category: item.category,
       discordRoleId: item.discordRoleId ?? "",
+      unlockedBannerKeys: item.unlockedBannerKeys ?? "",
       imageUrl: item.imageUrl ?? "",
       isActive: item.isActive,
       sortOrder: item.sortOrder,
@@ -146,6 +150,7 @@ export default function AdminLootShopPanel() {
         ...form,
         imageUrl: form.imageUrl || null,
         discordRoleId: form.discordRoleId || null,
+        unlockedBannerKeys: form.unlockedBannerKeys || null,
       };
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!res.ok) {
@@ -329,6 +334,11 @@ export default function AdminLootShopPanel() {
                     <div className="sm:col-span-2">
                       <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">Discord Roll-ID (valfri, tilldelas automatiskt)</label>
                       <input type="text" value={form.discordRoleId} onChange={(e) => setForm({ ...form, discordRoleId: e.target.value })} className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-neon-cyan/50" placeholder="123456789012345678" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">Banners som låses upp (kommaseparerade nyckelord)</label>
+                      <input type="text" value={form.unlockedBannerKeys} onChange={(e) => setForm({ ...form, unlockedBannerKeys: e.target.value })} className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-neon-cyan/50" placeholder="aurora,neon,lava,galaxy,ice" />
+                      <p className="mt-1 text-[10px] text-slate-500">Tillgängliga premium-banners: aurora, neon, lava, galaxy, ice</p>
                     </div>
                     <div className="flex items-center gap-3 sm:col-span-2">
                       <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">

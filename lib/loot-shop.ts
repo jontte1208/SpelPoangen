@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { BANNER_KEYS } from "@/lib/banners";
 
 export type PurchaseResult =
   | { ok: true; orderId: string }
@@ -47,6 +48,22 @@ export async function purchaseShopItem(
             where: { id: shopItemId },
             data: { stock: { decrement: 1 } },
           });
+        }
+
+        // Unlock banners if item grants any
+        if (item.unlockedBannerKeys) {
+          const keys = item.unlockedBannerKeys
+            .split(",")
+            .map((k) => k.trim())
+            .filter((k) => BANNER_KEYS.includes(k));
+
+          for (const bannerKey of keys) {
+            await tx.userBanner.upsert({
+              where: { userId_bannerKey: { userId, bannerKey } },
+              create: { userId, bannerKey },
+              update: {},
+            });
+          }
         }
 
         // Create order

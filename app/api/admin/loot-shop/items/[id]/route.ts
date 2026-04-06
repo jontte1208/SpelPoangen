@@ -11,6 +11,7 @@ const schema = z.object({
   stock: z.number().int().min(-1).optional(),
   category: z.enum(["DIGITAL", "PHYSICAL"]).optional(),
   discordRoleId: z.string().nullable().optional(),
+  unlockedBannerKeys: z.string().nullable().optional(),
   imageUrl: z.string().url().nullable().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
@@ -36,12 +37,13 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { imageUrl, ...rest } = parsed.data;
+  const { imageUrl, unlockedBannerKeys, ...rest } = parsed.data;
   const item = await prisma.shopItem.update({
     where: { id },
     data: {
       ...rest,
       ...(imageUrl !== undefined ? { imageUrl: imageUrl || null } : {}),
+      ...(unlockedBannerKeys !== undefined ? { unlockedBannerKeys: unlockedBannerKeys || null } : {}),
     },
   });
 

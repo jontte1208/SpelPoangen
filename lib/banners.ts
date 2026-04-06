@@ -2,6 +2,7 @@ export type Banner = {
   key: string;
   label: string;
   style: string;
+  premium?: boolean;
 };
 
 export const BANNERS: Banner[] = [
@@ -45,9 +46,41 @@ export const BANNERS: Banner[] = [
     label: "Midnight",
     style: "linear-gradient(135deg,#020617 0%,#1e3a5f 50%,#1d4ed8 100%)",
   },
+  // Premium banners — unlocked via Loot Shop
+  {
+    key: "aurora",
+    label: "Aurora",
+    style: "linear-gradient(135deg,#001a1a 0%,#00b4d8 40%,#90e0ef 70%,#caf0f8 100%)",
+    premium: true,
+  },
+  {
+    key: "neon",
+    label: "Neon",
+    style: "linear-gradient(135deg,#0d0221 0%,#7b00ff 40%,#ff00c8 80%,#00fff7 100%)",
+    premium: true,
+  },
+  {
+    key: "lava",
+    label: "Lava",
+    style: "linear-gradient(135deg,#0a0000 0%,#3d0000 30%,#ff4500 70%,#ff9800 100%)",
+    premium: true,
+  },
+  {
+    key: "galaxy",
+    label: "Galaxy",
+    style: "linear-gradient(135deg,#000000 0%,#0d0221 30%,#4a0080 60%,#c0392b 80%,#f39c12 100%)",
+    premium: true,
+  },
+  {
+    key: "ice",
+    label: "Ice",
+    style: "linear-gradient(135deg,#e0f7ff 0%,#b3ecff 30%,#4fc3f7 60%,#0288d1 100%)",
+    premium: true,
+  },
 ];
 
 export const BANNER_KEYS = BANNERS.map((b) => b.key);
+export const FREE_BANNER_KEYS = BANNERS.filter((b) => !b.premium).map((b) => b.key);
 
 export function getBanner(key: string): Banner {
   return BANNERS.find((b) => b.key === key) ?? BANNERS[0];

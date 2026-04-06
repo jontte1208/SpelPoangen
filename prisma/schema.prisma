@@ -150,6 +150,7 @@ model User {
   affiliateClicks AffiliateClick[]
   purchases       Purchase[]
   orders          Order[]
+  unlockedBanners UserBanner[]
   forumPosts          ForumPost[]
   forumComments       ForumComment[]
   forumLikes          ForumLike[]
@@ -221,20 +222,32 @@ model Purchase {
 }
 
 model ShopItem {
-  id              String           @id @default(cuid())
-  name            String
-  description     String           @db.Text
-  coinCost        Int              @default(0)
-  stock           Int              @default(-1) // -1 = unlimited
-  category        ShopItemCategory @default(DIGITAL)
-  discordRoleId   String?          // auto-assign Discord role on purchase
-  imageUrl        String?
-  isActive        Boolean          @default(true)
-  sortOrder       Int              @default(0)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                  String           @id @default(cuid())
+  name                String
+  description         String           @db.Text
+  coinCost            Int              @default(0)
+  stock               Int              @default(-1) // -1 = unlimited
+  category            ShopItemCategory @default(DIGITAL)
+  discordRoleId       String?          // auto-assign Discord role on purchase
+  unlockedBannerKeys  String?          // comma-separated banner keys unlocked on purchase
+  imageUrl            String?
+  isActive            Boolean          @default(true)
+  sortOrder           Int              @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   orders Order[]
+}
+
+model UserBanner {
+  id        String   @id @default(cuid())
+  userId    String
+  bannerKey String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bannerKey])
 }
 
 model Order {

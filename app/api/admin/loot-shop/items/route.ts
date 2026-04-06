@@ -11,6 +11,7 @@ const schema = z.object({
   stock: z.number().int().min(-1).default(-1),
   category: z.enum(["DIGITAL", "PHYSICAL"]).default("DIGITAL"),
   discordRoleId: z.string().optional().nullable(),
+  unlockedBannerKeys: z.string().optional().nullable(),
   imageUrl: z.string().url().optional().nullable().or(z.literal("")),
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
@@ -46,12 +47,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { imageUrl, discordRoleId, ...rest } = parsed.data;
+  const { imageUrl, discordRoleId, unlockedBannerKeys, ...rest } = parsed.data;
   const item = await prisma.shopItem.create({
     data: {
       ...rest,
       imageUrl: imageUrl || null,
       discordRoleId: discordRoleId || null,
+      unlockedBannerKeys: unlockedBannerKeys || null,
     },
   });
 
