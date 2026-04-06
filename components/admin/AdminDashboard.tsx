@@ -111,6 +111,7 @@ function StatCard({
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"quests" | "products" | "users">("users");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState("ALL");
@@ -759,17 +760,44 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Quest Management */}
-        <div className="mb-8">
-          <AdminQuestPanel />
+        {/* Tab navigation */}
+        <div className="mb-6 flex gap-2 rounded-2xl border border-white/5 bg-slate-900/50 p-1.5 backdrop-blur-sm">
+          {(
+            [
+              { key: "users", label: "Användare", icon: Users },
+              { key: "quests", label: "Utmaningar", icon: Trophy },
+              { key: "products", label: "Produkter", icon: MousePointerClick },
+            ] as const
+          ).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all",
+                activeTab === key
+                  ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/30"
+                  : "text-slate-400 hover:text-white border border-transparent"
+              )}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Product Management */}
-        <div className="mb-8">
-          <AdminProductPanel />
-        </div>
+        {activeTab === "quests" && (
+          <div className="mb-8">
+            <AdminQuestPanel />
+          </div>
+        )}
 
-        {/* Users table */}
+        {activeTab === "products" && (
+          <div className="mb-8">
+            <AdminProductPanel />
+          </div>
+        )}
+
+        {activeTab === "users" && (
         <div className="rounded-2xl border border-white/5 bg-slate-900/50 backdrop-blur-sm">
           <div className="border-b border-white/5 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1019,6 +1047,8 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+        )}
+
       </div>
 
       {/* Edit Stats Modal */}
