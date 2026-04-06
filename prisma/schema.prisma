@@ -177,6 +177,9 @@ model Product {
   isFlashDeal   Boolean  @default(false)
   isActive      Boolean  @default(true)
   showOnHome    Boolean  @default(false)
+  isOnSale      Boolean  @default(false)
+  salePriceSek  Float?
+  expiresAt     DateTime?
   createdAt     DateTime @default(now())
 
   affiliateClicks AffiliateClick[]

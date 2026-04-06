@@ -14,6 +14,9 @@ type HomeProduct = {
   id: string;
   name: string;
   priceSek: number;
+  salePriceSek: number | null;
+  isOnSale: boolean;
+  expiresAt: string | null;
   xpReward: number;
   coinReward: number;
   affiliateLink: string;
@@ -134,11 +137,18 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
               />
 
               <div className="space-y-4 p-5">
-                {index === 0 && (
-                  <span className="inline-flex rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-neon-cyan">
-                    Daily Deal
-                  </span>
-                )}
+                <div className="flex gap-2">
+                  {index === 0 && (
+                    <span className="inline-flex rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-neon-cyan">
+                      Daily Deal
+                    </span>
+                  )}
+                  {product.isOnSale && (
+                    <span className="inline-flex rounded-full border border-red-400/40 bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400">
+                      REA
+                    </span>
+                  )}
+                </div>
 
                 <h3 className="font-display text-xl font-semibold text-white">{product.name}</h3>
 
@@ -152,9 +162,16 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="font-display text-2xl font-semibold text-neon-cyan">
-                    {formatSEK(product.priceSek)}
-                  </span>
+                  <div className="flex flex-col">
+                    {product.isOnSale && product.salePriceSek ? (
+                      <>
+                        <span className="font-display text-2xl font-semibold text-red-400">{formatSEK(product.salePriceSek)}</span>
+                        <span className="text-sm text-slate-500 line-through">{formatSEK(product.priceSek)}</span>
+                      </>
+                    ) : (
+                      <span className="font-display text-2xl font-semibold text-neon-cyan">{formatSEK(product.priceSek)}</span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleBuyNow(product.id, product.affiliateLink)}

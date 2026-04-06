@@ -7,24 +7,31 @@ export default async function ProductsPage() {
   let products: { name: string; price: string; image: string; affiliateLink: string }[] = [];
 
   try {
+    const now = new Date();
     const dbProducts = await prisma.product.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
       orderBy: { createdAt: "desc" },
       select: {
         name: true,
         priceSek: true,
+        salePriceSek: true,
+        isOnSale: true,
         imageUrl: true,
         affiliateLink: true,
       },
     });
 
+    const fmt = (n: number) =>
+      new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK", minimumFractionDigits: 0 }).format(n);
+
     products = dbProducts.map((p) => ({
       name: p.name,
-      price: new Intl.NumberFormat("sv-SE", {
-        style: "currency",
-        currency: "SEK",
-        minimumFractionDigits: 0,
-      }).format(p.priceSek),
+      price: fmt(p.priceSek),
+      salePrice: p.isOnSale && p.salePriceSek ? fmt(p.salePriceSek) : undefined,
+      isOnSale: p.isOnSale,
       image:
         p.imageUrl ??
         "https://images.unsplash.com/photo-1593640408182-31c228c5d4b0?auto=format&fit=crop&w=1200&q=80",

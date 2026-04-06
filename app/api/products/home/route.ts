@@ -3,13 +3,21 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    const now = new Date();
     const products = await prisma.product.findMany({
-      where: { isActive: true, showOnHome: true },
+      where: {
+        isActive: true,
+        showOnHome: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         name: true,
         priceSek: true,
+        salePriceSek: true,
+        isOnSale: true,
+        expiresAt: true,
         xpReward: true,
         coinReward: true,
         affiliateLink: true,

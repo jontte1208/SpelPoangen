@@ -8,7 +8,8 @@
       "Bash(rm -rf spelpoangen)",
       "Bash(npm install:*)",
       "Bash(npx prisma:*)",
-      "Bash(node -e \"const {config}=require\\(''dotenv''\\);config\\({path:''.env.local''}\\);console.log\\(process.env.DATABASE_URL ? ''DATABASE_URL loaded'' : ''DATABASE_URL missing''\\)\")"
+      "Bash(node -e \"const {config}=require\\(''dotenv''\\);config\\({path:''.env.local''}\\);console.log\\(process.env.DATABASE_URL ? ''DATABASE_URL loaded'' : ''DATABASE_URL missing''\\)\")",
+      "Bash(npx tsc:*)"
     ]
   }
 }

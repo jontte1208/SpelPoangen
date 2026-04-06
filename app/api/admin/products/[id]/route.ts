@@ -17,6 +17,9 @@ const updateSchema = z.object({
   isFlashDeal: z.boolean().optional(),
   isActive: z.boolean().optional(),
   showOnHome: z.boolean().optional(),
+  isOnSale: z.boolean().optional(),
+  salePriceSek: z.number().positive().nullable().optional(),
+  expiresAt: z.string().datetime().nullable().optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -40,11 +43,15 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
+  const { expiresAt, ...rest } = parsed.data;
   const product = await prisma.product.update({
     where: { id },
     data: {
-      ...parsed.data,
-      imageUrl: parsed.data.imageUrl === "" ? null : parsed.data.imageUrl,
+      ...rest,
+      imageUrl: rest.imageUrl === "" ? null : rest.imageUrl,
+      ...(expiresAt !== undefined
+        ? { expiresAt: expiresAt ? new Date(expiresAt) : null }
+        : {}),
     },
   });
 

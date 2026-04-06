@@ -6,6 +6,8 @@ import { handleAffiliateClick } from "@/app/(platform)/shop/actions";
 type InteractiveProduct = {
   name: string;
   price: string;
+  salePrice?: string;
+  isOnSale?: boolean;
   image: string;
   affiliateLink: string;
 };
@@ -52,10 +54,26 @@ export default function InteractiveProductsGrid({ products }: InteractiveProduct
           </div>
 
           <div className="space-y-4 p-5">
-            <h3 className="font-display text-lg font-semibold text-white">{product.name}</h3>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-lg font-semibold text-white">{product.name}</h3>
+              {product.isOnSale && (
+                <span className="shrink-0 rounded-full border border-red-400/40 bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400">
+                  REA
+                </span>
+              )}
+            </div>
 
             <div className="flex items-center justify-between">
-              <span className="font-display text-xl font-semibold text-neon-cyan">{product.price}</span>
+              <div className="flex flex-col">
+                {product.isOnSale && product.salePrice ? (
+                  <>
+                    <span className="font-display text-xl font-semibold text-red-400">{product.salePrice}</span>
+                    <span className="text-sm text-slate-500 line-through">{product.price}</span>
+                  </>
+                ) : (
+                  <span className="font-display text-xl font-semibold text-neon-cyan">{product.price}</span>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => handleBuyNow(product.name, product.affiliateLink)}

@@ -32,6 +32,9 @@ type ProductRow = {
   isFlashDeal: boolean;
   isActive: boolean;
   showOnHome: boolean;
+  isOnSale: boolean;
+  salePriceSek: number | null;
+  expiresAt: string | null;
   createdAt: string;
   _count: { affiliateClicks: number; purchases: number };
 };
@@ -49,6 +52,9 @@ type FormData = {
   isFlashDeal: boolean;
   isActive: boolean;
   showOnHome: boolean;
+  isOnSale: boolean;
+  salePriceSek: number | null;
+  expiresAt: string;
 };
 
 const EMPTY_FORM: FormData = {
@@ -64,6 +70,9 @@ const EMPTY_FORM: FormData = {
   isFlashDeal: false,
   isActive: true,
   showOnHome: false,
+  isOnSale: false,
+  salePriceSek: null,
+  expiresAt: "",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -122,6 +131,11 @@ export default function AdminProductPanel() {
       isFlashDeal: product.isFlashDeal,
       isActive: product.isActive,
       showOnHome: product.showOnHome,
+      isOnSale: product.isOnSale,
+      salePriceSek: product.salePriceSek,
+      expiresAt: product.expiresAt
+        ? new Date(product.expiresAt).toISOString().slice(0, 16)
+        : "",
     });
     setShowForm(true);
     setError(null);
@@ -138,10 +152,16 @@ export default function AdminProductPanel() {
         : "/api/admin/products";
       const method = editingId ? "PUT" : "POST";
 
+      const payload = {
+        ...form,
+        salePriceSek: form.isOnSale ? form.salePriceSek : null,
+        expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
+      };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -429,6 +449,53 @@ export default function AdminProductPanel() {
                 )}
                 Visa på Hem
               </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={form.isOnSale}
+                  onChange={(e) => setForm({ ...form, isOnSale: e.target.checked })}
+                  className="sr-only"
+                />
+                {form.isOnSale ? (
+                  <ToggleRight size={22} className="text-red-400" />
+                ) : (
+                  <ToggleLeft size={22} className="text-slate-500" />
+                )}
+                REA
+              </label>
+            </div>
+
+            {/* Sale price */}
+            {form.isOnSale && (
+              <div>
+                <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">
+                  REA-pris (SEK)
+                </label>
+                <input
+                  type="number"
+                  value={form.salePriceSek ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...form, salePriceSek: e.target.value ? Number(e.target.value) : null })
+                  }
+                  min={1}
+                  step={0.01}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-red-400/50"
+                  placeholder="999"
+                />
+              </div>
+            )}
+
+            {/* Expiry */}
+            <div>
+              <label className="mb-1 block text-[11px] uppercase tracking-widest text-slate-500">
+                Utgångsdatum (lämna tomt = ingen utgång)
+              </label>
+              <input
+                type="datetime-local"
+                value={form.expiresAt}
+                onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-400/50"
+              />
             </div>
 
             {error && (
@@ -497,6 +564,11 @@ export default function AdminProductPanel() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h4 className="truncate font-semibold text-white">{product.name}</h4>
+                    {product.isOnSale && (
+                      <span className="rounded-full border border-red-400/30 bg-red-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-400">
+                        REA
+                      </span>
+                    )}
                     {product.isFlashDeal && (
                       <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-400">
                         Flash
@@ -507,14 +579,26 @@ export default function AdminProductPanel() {
                         Premium
                       </span>
                     )}
+                    {product.expiresAt && (
+                      <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-orange-400">
+                        Utgår {new Date(product.expiresAt).toLocaleDateString("sv-SE")}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 truncate text-xs text-slate-400">{product.description}</p>
 
                   {/* Meta row */}
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+                    {product.isOnSale && product.salePriceSek ? (
+                      <span className="font-mono font-semibold text-red-400">
+                        {product.salePriceSek.toLocaleString("sv-SE")} kr{" "}
+                        <span className="text-slate-500 line-through">{product.priceSek.toLocaleString("sv-SE")} kr</span>
+                      </span>
+                    ) : (
                     <span className="font-mono font-semibold text-emerald-400">
                       {product.priceSek.toLocaleString("sv-SE")} kr
                     </span>
+                    )}
                     <span className="text-slate-500">
                       {CATEGORY_LABELS[product.category] ?? product.category}
                     </span>

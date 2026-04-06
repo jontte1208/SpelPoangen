@@ -9,6 +9,9 @@ export interface Product {
   coinReward: number;
   category: ProductCategory;
   isActive: boolean;
+  isOnSale: boolean;
+  salePriceSek: number | null;
+  expiresAt: Date | null;
   createdAt: Date;
 }
 

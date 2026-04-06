@@ -17,6 +17,9 @@ const createSchema = z.object({
   isFlashDeal: z.boolean().default(false),
   isActive: z.boolean().default(true),
   showOnHome: z.boolean().default(false),
+  isOnSale: z.boolean().default(false),
+  salePriceSek: z.number().positive().nullable().default(null),
+  expiresAt: z.string().datetime().nullable().default(null),
 });
 
 export async function GET() {
@@ -61,6 +64,9 @@ export async function POST(request: Request) {
       isFlashDeal: parsed.data.isFlashDeal,
       isActive: parsed.data.isActive,
       showOnHome: parsed.data.showOnHome,
+      isOnSale: parsed.data.isOnSale,
+      salePriceSek: parsed.data.salePriceSek,
+      expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
     },
   });
 
