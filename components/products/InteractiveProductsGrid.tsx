@@ -41,15 +41,20 @@ export default function InteractiveProductsGrid({ products }: InteractiveProduct
           key={product.name}
           className="group overflow-hidden rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-md transition-all duration-300 hover:shadow-neon-soft"
         >
-          <div className="relative overflow-hidden">
+          <div className="relative flex h-44 items-center justify-center bg-slate-950/60">
             <span className="absolute right-3 top-3 z-10 rounded-full border border-neon-cyan/35 bg-slate-950/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-neon-cyan">
               +500 XP
             </span>
+            {product.isOnSale && (
+              <span className="absolute left-3 top-3 z-10 rounded-full border border-red-400/50 bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400 backdrop-blur-sm">
+                REA
+              </span>
+            )}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={product.image}
               alt={product.name}
-              className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
             />
           </div>
 

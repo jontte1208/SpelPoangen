@@ -127,28 +127,26 @@ export default function LootMarketSection({ inDashboard = false }: LootMarketSec
                 index === 0 ? "sm:col-span-2 xl:col-span-2" : ""
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={product.imageUrl ?? "https://images.unsplash.com/photo-1593640408182-31c228c5d4b0?auto=format&fit=crop&w=1200&q=80"}
-                alt={product.name}
-                className={`w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] ${
-                  index === 0 ? "h-56" : "h-44"
-                }`}
-              />
+              <div className={`relative flex items-center justify-center bg-slate-950/60 ${index === 0 ? "h-56" : "h-44"}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={product.imageUrl ?? "https://images.unsplash.com/photo-1593640408182-31c228c5d4b0?auto=format&fit=crop&w=1200&q=80"}
+                  alt={product.name}
+                  className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]"
+                />
+                {product.isOnSale && (
+                  <span className="absolute left-3 top-3 rounded-full border border-red-400/50 bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400 backdrop-blur-sm">
+                    REA
+                  </span>
+                )}
+              </div>
 
               <div className="space-y-4 p-5">
-                <div className="flex gap-2">
-                  {index === 0 && (
-                    <span className="inline-flex rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-neon-cyan">
-                      Daily Deal
-                    </span>
-                  )}
-                  {product.isOnSale && (
-                    <span className="inline-flex rounded-full border border-red-400/40 bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400">
-                      REA
-                    </span>
-                  )}
-                </div>
+                {index === 0 && (
+                  <span className="inline-flex rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-neon-cyan">
+                    Daily Deal
+                  </span>
+                )}
 
                 <h3 className="font-display text-xl font-semibold text-white">{product.name}</h3>
 
