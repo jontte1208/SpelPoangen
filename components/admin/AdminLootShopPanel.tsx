@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Plus, Pencil, Trash2, X, Loader2, Package, Coins,
-  CheckCircle, Clock, XCircle, ToggleLeft, ToggleRight, TrendingUp, ShoppingBag
+  CheckCircle, XCircle, ToggleLeft, ToggleRight, TrendingUp, ShoppingBag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
