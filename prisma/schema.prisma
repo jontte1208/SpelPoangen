@@ -389,3 +389,17 @@ model GlobalBroadcast {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Banner {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  label         String
+  style         String?  @db.Text  // CSS gradient string
+  imageUrl      String?
+  coinCost      Int      @default(0)
+  isPremiumOnly Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

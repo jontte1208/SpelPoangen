@@ -44,7 +44,24 @@ export default async function ProfilePage() {
     customImage: dbUser?.customImage ?? null,
   };
 
-  const banner = getBanner(user.bannerKey);
+  // Fetch all active banners and the user's current banner from DB
+  const [activeBanners, dbBanner] = await Promise.all([
+    prisma.banner.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { key: true, label: true, style: true, imageUrl: true, isPremiumOnly: true },
+    }),
+    prisma.banner.findUnique({
+      where: { key: user.bannerKey },
+      select: { style: true, imageUrl: true },
+    }),
+  ]);
+
+  // Resolve background: prefer imageUrl, then DB style, then hardcoded fallback
+  const bannerBackground = dbBanner?.imageUrl
+    ? `url(${dbBanner.imageUrl}) center/cover no-repeat`
+    : dbBanner?.style ?? getBanner(user.bannerKey).style;
+
   const displayImage = user.customImage || user.image;
 
   // Progress ring
@@ -73,7 +90,7 @@ export default async function ProfilePage() {
         {/* Banner */}
         <div
           className="relative h-36 w-full"
-          style={{ background: banner.style }}
+          style={{ background: bannerBackground }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_50%,rgba(0,245,255,0.08)_0%,transparent_70%)]" />
           <div className="absolute bottom-4 right-4">
@@ -82,6 +99,7 @@ export default async function ProfilePage() {
               currentImage={user.customImage}
               discordImage={user.image ?? null}
               unlockedBannerKeys={dbUser?.unlockedBanners.map((b) => b.bannerKey) ?? []}
+              banners={activeBanners}
             />
           </div>
         </div>

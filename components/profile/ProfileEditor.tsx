@@ -3,19 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { BANNERS } from "@/lib/banners";
 import { Pencil, X, Check, Upload, MessageCircle, CheckCircle2, Lock } from "lucide-react";
+
+type BannerOption = {
+  key: string;
+  label: string;
+  style: string | null;
+  imageUrl: string | null;
+  isPremiumOnly: boolean;
+};
 
 interface Props {
   currentBannerKey: string;
   currentImage: string | null;
   discordImage: string | null;
   unlockedBannerKeys: string[];
+  banners: BannerOption[];
 }
 
 type AvatarMode = "discord" | "custom";
 
-export function ProfileEditor({ currentBannerKey, currentImage, discordImage, unlockedBannerKeys }: Props) {
+export function ProfileEditor({ currentBannerKey, currentImage, discordImage, unlockedBannerKeys, banners }: Props) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState(currentBannerKey);
@@ -116,8 +124,8 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage, un
                   Välj banner — sparas direkt
                 </p>
                 <div className="grid grid-cols-4 gap-2">
-                  {BANNERS.map((banner) => {
-                    const isLocked = banner.premium && !unlockedBannerKeys.includes(banner.key);
+                  {banners.map((banner) => {
+                    const isLocked = banner.isPremiumOnly && !unlockedBannerKeys.includes(banner.key);
                     return (
                       <button
                         key={banner.key}
@@ -131,7 +139,14 @@ export function ProfileEditor({ currentBannerKey, currentImage, discordImage, un
                           opacity: isLocked ? 0.45 : 1,
                         }}
                       >
-                        <div className="h-14 w-full" style={{ background: banner.style }} />
+                        <div
+                        className="h-14 w-full"
+                        style={{
+                          background: banner.imageUrl
+                            ? `url(${banner.imageUrl}) center/cover no-repeat`
+                            : banner.style ?? "#0d1f3c",
+                        }}
+                      />
                         {selectedBanner === banner.key && !isLocked && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                             <Check size={16} className="text-neon-cyan drop-shadow" />

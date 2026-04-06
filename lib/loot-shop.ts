@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { BANNER_KEYS } from "@/lib/banners";
 
 export type PurchaseResult =
   | { ok: true; orderId: string }
@@ -52,10 +51,13 @@ export async function purchaseShopItem(
 
         // Unlock banners if item grants any
         if (item.unlockedBannerKeys) {
+          const activeBannerKeys = new Set(
+            (await tx.banner.findMany({ where: { isActive: true }, select: { key: true } })).map((b) => b.key)
+          );
           const keys = item.unlockedBannerKeys
             .split(",")
             .map((k) => k.trim())
-            .filter((k) => BANNER_KEYS.includes(k));
+            .filter((k) => activeBannerKeys.has(k));
 
           for (const bannerKey of keys) {
             await tx.userBanner.upsert({
